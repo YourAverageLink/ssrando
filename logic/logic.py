@@ -1447,12 +1447,32 @@ class Logic:
 
     def get_barren_regions(self):
         region_is_barren = {}
+        non_barren_items = set(self.all_progress_items)
+        if self.rando.options["start-with-pouch"]:
+            non_barren_items.remove("Progressive Pouch")
+        if self.rando.options["small-key-mode"] in [
+            "Vanilla",
+            "Own Dungeon - Restricted",
+            "Own Dungeon - Unrestricted",
+            "Lanayru Caves Key Only",
+        ]:
+            non_barren_items.difference_update(
+                [
+                    "SV Small Key",
+                    "LMF Small Key",
+                    "AC Small Key",
+                    "SSH Small Key",
+                    "FS Small Key",
+                ]
+            )
+            if self.rando.options["small-key-mode"] != "Lanayru Caves Key Only":
+                non_barren_items.remove("LanayruCaves Small Key")
         for loc in self.item_locations:
             zone_name, _ = Logic.split_location_name_by_zone(loc)
             item = self.done_item_locations[loc]
-            if item in self.all_progress_items:
+            if item in non_barren_items:
                 region_is_barren[zone_name] = False
-            elif not zone_name in region_is_barren:
+            elif zone_name not in region_is_barren:
                 region_is_barren[zone_name] = True
         return region_is_barren
 
