@@ -526,7 +526,7 @@
   choices:
     - Weak
     - Balanced
-    # - Strong
+    - Strong
     # - Very Strong
     # - Locations Only
     # - Items Only
