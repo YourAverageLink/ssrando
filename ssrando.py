@@ -216,7 +216,6 @@ class Randomizer(BaseRandomizer):
 
         # Write path hints to the required dungeons
         spoiler_log += "Path:\n"
-        #print(self.path_locations)
         for goal, full_locs in self.path_locations.items():
             spoiler_log += f"{goal}:\n"
             for pathloc, item in full_locs:
