@@ -31,6 +31,8 @@ from .constants import (
     ENTRANCE_CONNECTIONS,
     ALL_TYPES,
     STARTING_SWORD_COUNT,
+    POST_GOAL_LOCS,
+    DUNGEON_GOALS,
 )
 from .logic_expression import LogicExpression, parse_logic_expression, Inventory
 
@@ -1455,6 +1457,21 @@ class Logic:
                 if not self.can_finish_without_locations([loc]):
                     sots_items[loc] = item
         return sots_items
+    
+    def get_goals(self):
+        return list([DUNGEON_GOALS[dungeon] for dungeon in self.required_dungeons])
+
+    def get_path_locations(self):
+        path_locations = {}
+        for goal in self.get_goals():
+            path_locations[goal] = []
+        for loc, item in self.get_sots_locations().items():       
+            for goal in self.get_goals():
+                if not self.can_reach_restricted([loc],self.macros[POST_GOAL_LOCS[goal]]):
+                    path_locations[goal].append((loc, item))
+        return path_locations
+    
+    #def get_path_of_location(self, loc)
 
     def get_barren_regions(self):
         region_is_barren = {}
