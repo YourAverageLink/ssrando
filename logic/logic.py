@@ -816,8 +816,9 @@ class Logic:
             useful_items += self.get_item_names_from_logical_expression_req(
                 location_name, requirement_expression
             )
+            #print(useful_items, location_name)
         useful_items += self.get_item_names_by_req_name("Can Reach and Defeat Demise")
-
+        print(f"\n\n\n{useful_items}")
         # all dungeon items from unrequired dungeons are non progress
         for item_name in useful_items:
             if self.rando.options["empty-unrequired-dungeons"]:
@@ -828,7 +829,9 @@ class Logic:
                         useful_items.remove(item_name)
 
         all_progress_items_filtered = []
+
         for item_name in useful_items:
+
             if (
                 item_name == "Progressive Sword"
                 and self.rando.options.get("sword_mode") == "Swordless"
@@ -845,11 +848,20 @@ class Logic:
                         "Item %s opens up progress locations but is not in the list of all progress items."
                         % item_name
                     )
+            if (item_name == "Progressive Pouch") and ("Progressive Pouch" in self.starting_items):
+                print("test")
+                # Extra progressive pouches are useless if the player starts with at least one
+                continue
             if item_name in all_progress_items_filtered:
                 # Avoid duplicates
                 continue
             all_progress_items_filtered.append(item_name)
-
+            print(item_name)
+        
+        owned_unique_items = [item for item in self.current_inventory.all_owned_unique_items() if item != "Progressive Pouch"]
+        
+        print(all_progress_items_filtered)
+        print(self.current_inventory.all_owned_unique_items())
         items_to_make_nonprogress = [
             item_name
             for item_name in self.all_progress_items
