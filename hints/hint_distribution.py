@@ -208,7 +208,7 @@ class HintDistribution:
         )
 
         # ensure silent realms cannot be hinted unless already always hinted
-        if self.logic.rando.options["song-hints"] == "None":
+        if self.logic.rando.options["song-hints"] != "None":
             self.hinted_locations.extend(SILENT_REALM_CHECKS)
 
         # populate our internal list copies for later manipulation
