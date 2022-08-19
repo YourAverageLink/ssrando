@@ -238,7 +238,10 @@ class HintDistribution:
                 continue  # don't hint barren silent realms since they are an always hint
             if options["empty-unrequired-dungeons"]:
                 # avoid placing barren hints for unrequired dungeons in race mode
-                if options["skip-skykeep"] and zone == SK:
+                if (
+                    not options["triforce-required"]
+                    or options["triforce-shuffle"] == "Anywhere"
+                ) and (zone == SK):
                     # skykeep is always barren when race mode is on and Sky Keep is skipped
                     continue
                 if (

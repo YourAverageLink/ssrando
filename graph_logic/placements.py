@@ -109,6 +109,13 @@ VANILLA_BOSS_KEYS = {
 }
 VANILLA_BOSS_KEYS_PLACEMENT = norm_keys(VANILLA_BOSS_KEYS)
 
+VANILLA_TRIFORCES = {
+    "Sky Keep - Triforce of Courage": TRIFORCE_OF_COURAGE,
+    "Sky Keep - Triforce of Wisdom": TRIFORCE_OF_WISDOM,
+    "Sky Keep - Triforce of Power": TRIFORCE_OF_POWER,
+}
+VANILLA_TRIFORCES_PLACEMENT = norm_keys(VANILLA_TRIFORCES)
+
 DUNGEON_BOSS_KEYS_RESTRICTION = norm_values(
     {
         SV_BOSS_KEY: SV,
@@ -117,6 +124,14 @@ DUNGEON_BOSS_KEYS_RESTRICTION = norm_values(
         AC_BOSS_KEY: AC,
         SSH_BOSS_KEY: SSH,
         FS_BOSS_KEY: FS,
+    }
+)
+
+SKYKEEP_TRIFORCES_RESTRICTION = norm_values(
+    {
+        TRIFORCE_OF_COURAGE: SK,
+        TRIFORCE_OF_WISDOM: SK,
+        TRIFORCE_OF_POWER: SK,
     }
 )
 

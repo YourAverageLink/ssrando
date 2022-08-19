@@ -415,7 +415,7 @@ class Rando:
             exit(1)
 
     def parse_options(self):
-        # Initialize location related attributes.
+        # Initialize location related attributes._
         self.randomize_required_dungeons()  # self.required_dungeons, self.unrequired_dungeons
         self.randomize_starting_items()  # self.placement.starting_items
         self.ban_the_banned()  # self.banned, self.ban_options
@@ -490,7 +490,10 @@ class Rando:
                 for dungeon in self.unrequired_dungeons
             )
 
-            if self.options["skip-skykeep"]:
+            if (
+                not self.options["triforce-required"]
+                or self.options["triforce-shuffle"] == "Anywhere"
+            ):
                 self.banned.append(self.norm(entrance_of_exit(DUNGEON_MAIN_EXITS[SK])))
 
         banned_types = set(self.options["banned-types"]) - {"medium", "expensive"}
@@ -511,11 +514,15 @@ class Rando:
         got_opening_requirement = InventoryAtom(
             PROGRESSIVE_SWORD, SWORD_COUNT[self.options["got-sword-requirement"]]
         )
-        horde_door_requirement = (
-            DNFInventory(self.short_to_full(DUNGEON_FINAL_CHECK[SK]))
-            if not self.options["skip-skykeep"]
-            else DNFInventory(True)
-        )
+        print(TRIFORCE_OF_COURAGE)
+        print(CAVES_KEY)
+        print(PROGRESSIVE_SWORD)
+        horde_door_requirement = DNFInventory(True)
+
+        if self.options["triforce-required"]:
+            horde_door_requirement &= DNFInventory(TRIFORCE_OF_COURAGE)
+            horde_door_requirement &= DNFInventory(TRIFORCE_OF_WISDOM)
+            horde_door_requirement &= DNFInventory(TRIFORCE_OF_POWER)
 
         dungeons_req = Inventory()
         for dungeon in self.required_dungeons:
@@ -535,7 +542,7 @@ class Rando:
     def initialize_items(self):
         # Initialize item related attributes.
         must_be_placed_items = (
-            PROGRESS_ITEMS | NONPROGRESS_ITEMS | SMALL_KEYS | BOSS_KEYS
+            PROGRESS_ITEMS | NONPROGRESS_ITEMS | SMALL_KEYS | BOSS_KEYS | TRIFORCES
         )
         if self.options["map-mode"] != "Removed":
             must_be_placed_items |= MAPS
@@ -626,6 +633,7 @@ class Rando:
 
         small_key_mode = self.options["small-key-mode"]
         boss_key_mode = self.options["boss-key-mode"]
+        triforce_mode = self.options["triforce-shuffle"]
         map_mode = self.options["map-mode"]
         # remove small keys from the dungeon pool if small key sanity is enabled
         if small_key_mode == "Vanilla":
@@ -644,6 +652,14 @@ class Rando:
         elif boss_key_mode == "Own Dungeon":
             self.placement |= DUNGEON_BOSS_KEYS_RESTRICTION(self.norm)
         elif boss_key_mode == "Anywhere":
+            pass
+
+        # remove triforce from the dungeon pool if triforce shuffle is enabled
+        if triforce_mode == "Vanilla":
+            self.placement |= VANILLA_TRIFORCES_PLACEMENT(self.norm)
+        elif triforce_mode == "Sky Keep":
+            self.placement |= SKYKEEP_TRIFORCES_RESTRICTION(self.norm)
+        elif triforce_mode == "Anywhere":
             pass
 
         # remove maps from the dungeon pool if maps are shuffled

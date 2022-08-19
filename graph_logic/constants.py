@@ -178,6 +178,11 @@ SSH_BOSS_KEY = boss_key(SSH)
 FS_BOSS_KEY = boss_key(FS)
 SK_BOSS_KEY = boss_key(SK)
 
+TRIFORCE_OF_COURAGE = EIN("Triforce of Courage")
+TRIFORCE_OF_WISDOM = EIN("Triforce of Wisdom")
+TRIFORCE_OF_POWER = EIN("Triforce of Power")
+
+
 dungeon_map = lambda d: EIN(d + " Map")
 SV_MAP = dungeon_map(SV)
 ET_MAP = dungeon_map(ET)
@@ -371,6 +376,9 @@ BOSS_KEYS = (
     | FS_BOSS_KEYS
     | SK_BOSS_KEYS
 )
+TRIFORCES = (
+    {TRIFORCE_OF_COURAGE: None} | {TRIFORCE_OF_WISDOM: None} | {TRIFORCE_OF_POWER: None}
+)
 MAPS = dict.fromkeys([SV_MAP, ET_MAP, LMF_MAP, AC_MAP, SSH_MAP, FS_MAP, SK_MAP])
 
 INVENTORY_ITEMS = (
@@ -379,6 +387,7 @@ INVENTORY_ITEMS = (
     | CONSUMABLE_ITEMS
     | SMALL_KEYS
     | BOSS_KEYS
+    | TRIFORCES
     | MAPS
 )
 
