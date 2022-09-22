@@ -117,6 +117,7 @@ class HintDistribution:
             "item": self._create_item_hint,
             "random": self._create_random_hint,
             "junk": self._create_junk_hint,
+            "bk": self._create_bk_hint,
         }
 
     def read_from_file(self, f):
@@ -207,6 +208,17 @@ class HintDistribution:
         self.rng.shuffle(self.hints)
         self.rng.shuffle(sometimes_hints)
         self.sometimes_hints = sometimes_hints
+
+        # creates a list of boss key locations for required dungeons
+        self.required_boss_key_locations = [
+            loc
+            for loc, item in self.logic.placement.locations.items()
+            if item in BOSS_KEYS
+            and item[:-9]
+            in self.logic.required_dungeons
+        ]
+        self.rng.shuffle(self.required_boss_key_locations)
+        print(self.required_boss_key_locations)
 
         # populate our internal list copies for later manipulation
         self.sots_locations = list(self.logic.get_sots_locations())
@@ -476,6 +488,20 @@ class HintDistribution:
         self.hinted_locations.append(loc)
         return LocationGossipStoneHint(
             "random",
+            loc,
+            self.logic.placement.locations[loc],
+            self.areas.checks[loc].get("text"),
+        )
+    
+    def _create_bk_hint(self):
+        if not self.required_boss_key_locations:
+            return None
+        loc = self.required_boss_key_locations.pop()
+        if loc in self.hinted_locations:
+            return self._create_bk_hint()
+        self.hinted_locations.append(loc)
+        return LocationGossipStoneHint(
+            "boss_key",
             loc,
             self.logic.placement.locations[loc],
             self.areas.checks[loc].get("text"),
