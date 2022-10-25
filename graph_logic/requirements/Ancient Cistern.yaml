@@ -17,7 +17,7 @@ Main:
       Main Exit: Nothing
       East Part: Lever to East Part
       After Whip Hooks: Whip
-      Vines Area: Vines Area - Activate Water Geyser
+      Vines Area: Vines Area - Activate Water Geyser | Whip & Clawshots
       Behind the Waterfall: Lever to Block Waterfall & Water Scale
       Inside Statue: Can Lower Statue | Ancient Cistern Small Key x 2
       Basement - Under the Statue: Ancient Cistern - Cistern Clip Trick
@@ -125,7 +125,7 @@ Main:
   Basement:
     locations:
       Stop Cursed Waterfall: Beetle
-      Blow Rock: Hook Beetle
+      Blow Rock: Hook Beetle | Bomb Bag & Bomb Throws Trick
     exits:
       Inside Statue: Nothing
       Rotating Vines: Whip & Blow Rock | Clawshots

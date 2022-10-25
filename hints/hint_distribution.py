@@ -10,6 +10,7 @@ from hints.hint_types import *
 from options import Options
 from graph_logic.randomize import LogicUtils
 
+MAX_HINTS_PER_STONE = 2
 
 HINTABLE_ITEMS = (
     dict.fromkeys(
@@ -159,6 +160,12 @@ class HintDistribution:
         self.hinted_locations.extend(unhintable)
 
         self.banned_stones = list(map(areas.short_to_full, self.banned_stones))
+        self.max_hints_per_stone = {
+            stone: 0 if stone in self.banned_stones else MAX_HINTS_PER_STONE
+            for stone in self.areas.gossip_stones
+        }
+        self.nb_hints = sum(self.max_hints_per_stone.values())
+        assert self.nb_hints <= MAX_HINTS
 
         for loc in self.added_locations:
             location = areas.short_to_full(loc["location"])
@@ -314,8 +321,9 @@ class HintDistribution:
     Uses the distribution to calculate all the hints
     """
 
-    def get_hints(self, count) -> List[GossipStoneHint]:
+    def get_hints(self) -> List[GossipStoneHint]:
         hints = self.hints
+        count = self.nb_hints
         while len(hints) < count:
             [next_type] = self.rng.choices(self.weighted_types, self.weights)
             if (limit := self.distribution[next_type].get("max")) is not None:

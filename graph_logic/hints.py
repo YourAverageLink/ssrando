@@ -10,9 +10,6 @@ from paths import RANDO_ROOT_PATH
 from typing import Dict, List
 
 
-MAX_HINTS_PER_STONE = 2
-
-
 class Hints:
     def __init__(self, options: Options, rng, areas: Areas, logic: LogicUtils):
         self.logic = logic
@@ -103,9 +100,10 @@ class Hints:
             needed_always_hints,
             needed_sometimes_hints,
         )
-        hints = self.dist.get_hints(MAX_HINTS)
+        hints = self.dist.get_hints()
         self.useroutput.progress_callback("placing hints...")
         hints = {hintname: hint for hint, hintname in zip(hints, HINTS)}
+        self.max_hints_per_stone = self.dist.max_hints_per_stone
         self.randomize(hints)
 
         return {
@@ -142,7 +140,7 @@ class Hints:
         available_stones = [
             stone
             for stone in accessible_stones
-            if len(self.logic.placement.stones[stone]) < MAX_HINTS_PER_STONE
+            if len(self.logic.placement.stones[stone]) < self.max_hints_per_stone[stone]
         ]
 
         if available_stones:

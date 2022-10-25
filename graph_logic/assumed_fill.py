@@ -149,7 +149,7 @@ class AssumedFill:
         if (
             item in SMALL_KEYS[AC]
             and not self.logic.full_inventory[EXTENDED_ITEM[CISTERN_CLIP]]
-            and not self.logic.full_inventory[EXTENDED_ITEM[number(PROGRESSIVE_BOW, 0)]]
+            and not self.logic.full_inventory[EXTENDED_ITEM[WHIP]]
         ):
             raise self.useroutput.GenerationFailed(
                 f"Known generation failure : Vanilla Whip"
