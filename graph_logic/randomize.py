@@ -225,10 +225,9 @@ class LogicUtils(Logic):
     def get_useful_items(self, bit=EVERYTHING_UNBANNED_BIT):
         return self._get_useful_items(bit)
 
+    @cache
     def locations_by_hint_region(self, region):
-        for n, c in self.areas.checks.items():
-            if c["hint_region"] == region:
-                yield n
+        return [n for n, c in self.areas.checks.items() if c["hint_region"] == region]
 
     @cache
     def _get_barren_regions(self, index: EXTENDED_ITEM):

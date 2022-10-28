@@ -268,6 +268,7 @@ Beedle's Shop - 600 Rupee Item:
 Beedle's Shop - 1200 Rupee Item:
   original item: "Progressive Pouch #3"
   type: skyloft, beedle, expensive
+  hint: always
   Paths:
     - ShpSmpl/22
   text: for <g+<1200 rupees>> <r<Beedle>> sells
@@ -279,6 +280,7 @@ Beedle's Shop - 800 Rupee Item:
 Beedle's Shop - 1600 Rupee Item:
   original item: "Heart Piece #0"
   type: skyloft, beedle, expensive
+  hint: always
   Paths:
     - ShpSmpl/23
   text: for <g+<1600 rupees>> <r<Beedle>> sells
@@ -298,7 +300,7 @@ Beedle's Shop - Third 100 Rupee Item:
   Paths:
     - ShpSmpl/18
 Beedle's Shop - 50 Rupee Item:
-  original item: Progressive Bug Net
+  original item: "Progressive Bug Net #0"
   type: skyloft, beedle, cheap
   Paths:
     - ShpSmpl/25

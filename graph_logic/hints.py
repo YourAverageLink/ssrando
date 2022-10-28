@@ -1,5 +1,5 @@
 from graph_logic.constants import *
-from graph_logic.inventory import EXTENDED_ITEM, HINT_BYPASS_BIT, Inventory
+from graph_logic.inventory import EXTENDED_ITEM
 from graph_logic.logic import DNFInventory
 from graph_logic.logic_input import Areas
 from hints.hint_distribution import HintDistribution
@@ -43,15 +43,6 @@ class Hints:
 
         # ensure prerandomized locations cannot be hinted
         unhintables = list(self.logic.known_locations) + [START_ITEM, UNPLACED_ITEM]
-
-        # in shopsanity, we need to hint some beetle shop items
-        # add them manually, cause they need to be kinda weirdly implemented because of bug net
-        if (
-            self.options["shop-mode"] == "Randomized"
-            and "expensive" not in self.options["banned-types"]
-        ):
-            needed_always_hints.append(self.norm("Beedle - 1200 Rupee Item"))
-            needed_always_hints.append(self.norm("Beedle - 1600 Rupee Item"))
 
         hint_mode = self.options["song-hints"]
         if hint_mode != "None":
@@ -103,11 +94,21 @@ class Hints:
         hints = self.dist.get_hints()
         self.useroutput.progress_callback("placing hints...")
         hints = {hintname: hint for hint, hintname in zip(hints, HINTS)}
-        self.max_hints_per_stone = self.dist.max_hints_per_stone
+        self.hints_per_stone = self.dist.hints_per_stone
         self.randomize(hints)
 
+        def wrap(hintnames):
+            assert 0 <= len(hintnames) <= self.hints_per_stone
+            return GossipStoneHintWrapper(
+                *(hints[name] for name in hintnames),
+                *(
+                    self.dist._create_junk_hint()
+                    for _ in range(self.hints_per_stone - len(hintnames))
+                ),
+            )
+
         return {
-            stone: GossipStoneHintWrapper(*(hints[name] for name in hintnames))
+            stone: wrap(hintnames)
             for stone, hintnames in self.logic.placement.stones.items()
         }
 
@@ -127,7 +128,7 @@ class Hints:
         )
         self.logic.fill_inventory_i(monotonic=False)
 
-        for hintname in HINTS:
+        for hintname in hints:
             if not self.place_hint(hintname):
                 raise self.useroutput.GenerationFailed(f"could not place {hintname}")
 
@@ -140,7 +141,10 @@ class Hints:
         available_stones = [
             stone
             for stone in accessible_stones
-            if len(self.logic.placement.stones[stone]) < self.max_hints_per_stone[stone]
+            for spot in range(
+                self.dist.max_hints_per_stone[stone]
+                - len(self.logic.placement.stones[stone])
+            )
         ]
 
         if available_stones:
@@ -157,9 +161,11 @@ class Hints:
                 f"no more location accessible for {hintname}"
             )
 
-        stone = self.rng.choice(accessible_stones)
-        old_hints = self.placement.stones[stone]
-        assert old_hints
-        old_hint = self.rng.choice(old_hints)
-        new_hint = self.logic.replace_item(stone, hintname, old_hint)
-        return self.place_hint(new_hint, depth + 1)
+        spots = [
+            (stone, old_hint)
+            for stone in accessible_stones
+            for old_hint in self.placement.stones[stone]
+        ]
+        stone, old_hint = self.rng.choice(spots)
+        old_removed_hint = self.logic.replace_item(stone, hintname, old_hint)
+        return self.place_hint(old_removed_hint, depth + 1)
