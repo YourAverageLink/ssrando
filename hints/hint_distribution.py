@@ -28,7 +28,7 @@ HINTABLE_ITEMS = (
     | PROGRESSIVE_SWORDS
 )
 
-with open(RANDO_ROOT_PATH / f"hints/junk_hints.json") as f:
+with open(RANDO_ROOT_PATH + f"/hints/junk_hints.json") as f:
     JUNK_TEXT = json.load(f)
 
 
