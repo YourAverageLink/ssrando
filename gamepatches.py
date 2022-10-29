@@ -2548,9 +2548,7 @@ class GamePatcher:
             / "DoButton.arc"
         ).read_bytes()
         actual_arc = U8File.parse_u8(BytesIO(actual_data))
-        chestdata = (
-            self.rando_root_path / "assets" / "chest_image.tpl"
-        ).read_bytes()
+        chestdata = (self.rando_root_path / "assets" / "chest_image.tpl").read_bytes()
         actual_arc.set_file_data("timg/tr_dauzTarget_10.tpl", chestdata)
         (
             self.modified_extract_path
