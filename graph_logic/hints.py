@@ -49,38 +49,7 @@ class Hints:
             for check in SILENT_REALM_CHECKS.values():
                 unhintables.append(self.norm(check))
 
-        trial_hintnames = {
-            # (getting it text patch, inventory text line)
-            SKYLOFT_TRIAL_GATE: EIN("Song of the Hero - Trial Hint"),
-            FARON_TRIAL_GATE: EIN("Farore's Courage - Trial Hint"),
-            LANAYRU_TRIAL_GATE: EIN("Nayru's Wisdom - Trial Hint"),
-            ELDIN_TRIAL_GATE: EIN("Din's Power - Trial Hint"),
-        }
-
-        for (trial_gate, hintname) in trial_hintnames.items():
-            randomized_trial = self.logic.randomized_trial_entrance[trial_gate]
-            randomized_check = SILENT_REALM_CHECKS[randomized_trial]
-            item = self.logic.placement.locations[
-                self.areas.short_to_full(randomized_check)
-            ]
-
-            if hint_mode == "Basic":
-                if item in self.logic.get_useful_items():
-                    useful_text = "You might need what it reveals..."
-                else:
-                    useful_text = "It's probably not too important..."
-            elif hint_mode == "Advanced":
-                if item in self.logic.get_sots_items():
-                    useful_text = "Your spirit will grow by completing this trial"
-                elif item in self.logic.get_useful_items():
-                    useful_text = "You might need what it reveals..."
-                else:  # barren
-                    useful_text = "It's probably not too important..."
-            elif hint_mode == "Direct":
-                useful_text = f"This trial holds {item}"
-            else:
-                useful_text = ""
-            self.placement.song_hints[hintname] = useful_text
+        self.placement.trial_hints, self.placement.npc_hints = self.get_miscellaneous_hints() 
 
         self.dist.start(
             self.areas,
@@ -103,6 +72,91 @@ class Hints:
             )
             for stone in self.areas.gossip_stones
         }
+    
+    def get_miscellaneous_hints(self):
+        trial_hintnames = {
+            # (getting it text patch, inventory text line)
+            SKYLOFT_TRIAL_GATE: EIN("Song of the Hero - Trial Hint"),
+            FARON_TRIAL_GATE: EIN("Farore's Courage - Trial Hint"),
+            LANAYRU_TRIAL_GATE: EIN("Nayru's Wisdom - Trial Hint"),
+            ELDIN_TRIAL_GATE: EIN("Din's Power - Trial Hint"),
+        }
+        trial_hints = {}
+        hint_mode = self.options["song-hints"]
+        # mode for sots/progress/barren hint generalization
+        def advanced_hint(item, sots_text, useful_text, useless_text):
+            if item in self.logic.get_sots_items():
+                return sots_text
+            if item in self.logic.get_useful_items():
+                return useful_text
+            return useless_text
+
+        for (trial_gate, hintname) in trial_hintnames.items():
+            randomized_trial = self.logic.randomized_trial_entrance[trial_gate]
+            randomized_check = SILENT_REALM_CHECKS[randomized_trial]
+            item = self.logic.placement.locations[
+                self.areas.short_to_full(randomized_check)
+            ]
+
+            if hint_mode == "Basic":
+                useful_text = advanced_hint(item,
+                    "You might need what it reveals...",
+                    "You might need what it reveals...",
+                    "It's probably not too important..."
+                )
+            elif hint_mode == "Advanced":
+                useful_text = advanced_hint(item,
+                    "Your spirit will grow by completing this trial",
+                    "You might need what it reveals...",
+                    "It's probably not too important..."
+                )
+            elif hint_mode == "Direct":
+                useful_text = f"This trial holds {item}"
+            else:
+                useful_text = ""
+            trial_hints[hintname] = useful_text
+
+        npc_hints = {
+            "Water Dragon's Hint": "",
+            "Owlan's Hint": "",
+            "Kina's Hint": "",
+            "Pumm's Hint": "",
+        }
+        if self.options["npc-hints"]:
+            npc_hints["Water Dragon's Hint"] = advanced_hint(
+                self.logic.placement.locations[
+                self.areas.short_to_full("Flooded Faron Woods - Water Dragon's Reward")
+            ],
+                "You're <b<going to need my reward>> to complete your quest!",
+                "You <g+<might find my reward useful>>...",
+                "Admittedly, I don't have a very enticing reward...",
+            )
+            npc_hints["Owlan's Hint"] = advanced_hint(
+                self.logic.placement.locations[
+                self.areas.short_to_full("Knight Academy - Owlan's Crystals")
+            ],
+                "I promise I will return the favor with an <b<item you need>>!",
+                "I'll give you <g+<something you might find useful>> in return!",
+                "I'm sorry, I don't have anything very good to reward you with...",
+            )
+            npc_hints["Kina's Hint"] = advanced_hint(
+                self.logic.placement.locations[
+                self.areas.short_to_full("Sky - Kina's Crystals")
+            ],
+                "I'll bet I can give you <b<something you really need>> for helping me!",
+                "I could give you a <g+<possibly useful item>> if you help me...",
+                "Sorry, kid, I can't give you anything useful, but I'd still appreciate help!",
+            )
+            npc_hints["Pumm's Hint"] = advanced_hint(
+                self.logic.placement.locations[
+                self.areas.short_to_full("Thunderhead - Song from Levias")
+            ],
+                "I think you'll <b<need to deliver my soup>> to Levias!",
+                "Levias <g+<might have something useful>> if you help him come to his senses.",
+                "I doubt helping Levias will do you much good...",
+            )
+
+        return trial_hints, npc_hints
 
     def randomize(self, hints: Dict[EIN, GossipStoneHint]):
         for hintname, hint in hints.items():

@@ -1696,11 +1696,11 @@ class GamePatcher:
             courage_region = wisdom_region = power_region = "Triforce not placed monkaS"
             for location, item in self.placement_file.item_locations.items():
                 if item == "Triforce of Courage":
-                    courage_region = Logic.split_location_name_by_zone(location)[0]
+                    courage_region = self.areas.checks[location]["hint_region"]
                 elif item == "Triforce of Wisdom":
-                    wisdom_region = Logic.split_location_name_by_zone(location)[0]
+                    wisdom_region = self.areas.checks[location]["hint_region"]
                 elif item == "Triforce of Power":
-                    power_region = Logic.split_location_name_by_zone(location)[0]
+                    power_region = self.areas.checks[location]["hint_region"]
             patches.extend(
                 [
                     {
@@ -1741,7 +1741,7 @@ class GamePatcher:
             sot_region = "Stone of Trials not placed monkaS"
             for location, item in self.placement_file.item_locations.items():
                 if item == "Stone of Trials":
-                    sot_region = Logic.split_location_name_by_zone(location)[0]
+                    sot_region = self.areas.checks[location]["hint_region"]
             patches.append(
                 {
                     "name": "Past Impa SoT Hint",

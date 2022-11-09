@@ -193,6 +193,9 @@ class HintDistribution:
             ):
                 continue
 
+            if zone == FLOODED_FARON_WOODS:
+                continue
+
             if zone in ALL_DUNGEONS:
                 self.barren_dungeons.append(zone)
             else:
