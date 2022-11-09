@@ -230,7 +230,8 @@ class Randomizer(BaseRandomizer):
             (k, v.to_gossip_stone_text(lambda s: self.areas.prettify(s, custom=True)))
             for (k, v) in self.hints.items()
         )
-        plcmt_file.trial_hints = self.logic.placement.song_hints
+        plcmt_file.trial_hints = self.logic.placement.trial_hints
+        plcmt_file.npc_hints = self.logic.placement.npc_hints
         plcmt_file.item_locations = self.logic.placement.locations
         dowsing_setting = self.options["chest-dowsing"]
         plcmt_file.chest_dowsing = self.logic.get_dowsing(dowsing_setting)
@@ -244,6 +245,84 @@ class Randomizer(BaseRandomizer):
         plcmt_file.check_valid(self.areas)
 
         return plcmt_file
+
+    def get_miscellaneous_hints(self):
+        trial_checks = {
+            # (getting it text patch, inventory text line)
+            "Song of the Hero - Trial Hint": constants.SKYLOFT_TRIAL_GATE,
+            "Farore's Courage - Trial Hint": constants.FARON_TRIAL_GATE,
+            "Nayru's Wisdom - Trial Hint": constants.LANAYRU_TRIAL_GATE,
+            "Din's Power - Trial Hint": constants.ELDIN_TRIAL_GATE,
+        }
+        trial_hints = {}
+        # mode for sots/progress/barren hint generalization
+        def advanced_hint(location, sots_text, useful_text, useless_text):
+            item = self.logic.done_item_locations[location]
+            if location in self.sots_locations:
+                return sots_text
+            if item in self.logic.all_progress_items:
+                return useful_text
+            return useless_text
+
+        for (hintname, trial_gate) in trial_checks.items():
+            randomized_trial = self.logic.trial_connections[trial_gate]
+            randomized_trial_check = constants.SILENT_REALM_CHECKS[randomized_trial]
+            item = self.logic.done_item_locations[randomized_trial_check]
+            hint_mode = self.options["song-hints"]
+            if hint_mode == "Basic":
+                # just set sots and progress text to be the same
+                useful_text = advanced_hint(
+                    randomized_trial_check,
+                    "You might need what it reveals...",
+                    "You might need what it reveals...",
+                    "It's probably not too important...",
+                )
+            elif hint_mode == "Advanced":
+                useful_text = advanced_hint(
+                    randomized_trial_check,
+                    "Your spirit will grow by completing this trial",
+                    "You might need what it reveals...",
+                    "It's probably not too important...",
+                )
+            elif hint_mode == "Direct":
+                useful_text = f"This trial holds {item}"
+            else:
+                useful_text = ""
+            trial_hints[hintname] = useful_text
+
+        npc_hints = {
+            "Water Dragon's Hint": "",
+            "Owlan's Hint": "",
+            "Kina's Hint": "",
+            "Pumm's Hint": "",
+        }
+        if self.options["npc-hints"]:
+            npc_hints["Water Dragon's Hint"] = advanced_hint(
+                "Flooded Faron Woods - Faron Soth",
+                "You're <b<going to need my reward>> to complete your quest!",
+                "You <g+<might find my reward useful>>...",
+                "Admittedly, I don't have a very enticing reward...",
+            )
+            npc_hints["Owlan's Hint"] = advanced_hint(
+                "Knight Academy - Owlan's Crystals",
+                "I promise I will return the favor with an <b<item you need>>!",
+                "I'll give you <g+<something you might find useful>> in return!",
+                "I'm sorry, I don't have anything very good to reward you with...",
+            )
+            npc_hints["Kina's Hint"] = advanced_hint(
+                "Sky - Kina's Crystals",
+                "I'll bet I can give you <b<something you really need>> for helping me!",
+                "I could give you a <g+<possibly useful item>> if you help me...",
+                "Sorry, kid, I can't give you anything useful, but I'd still appreciate help!",
+            )
+            npc_hints["Pumm's Hint"] = advanced_hint(
+                "Thunderhead - Song from Levias",
+                "I think you'll <b<need to deliver my soup>> to Levias!",
+                "Levias <g+<might have something useful>> if you help him come to his senses.",
+                "I doubt helping Levias will do you much good...",
+            )
+
+        return trial_hints, npc_hints
 
 
 class PlandoRandomizer(BaseRandomizer):

@@ -185,6 +185,20 @@ def write(
 
     file.write("\n\n\n")
 
+    # Write song hints
+    file.write("Song Hints:\n")
+    for hint, text in placement.trial_hints.items():
+        file.write(f"  {hint+':':53} {text}\n")
+
+    file.write("\n\n")
+
+    # Write NPC hints
+    file.write("NPC Hints:\n")
+    for hint, text in placement.npc_hints.items():
+        file.write(f"  {hint+':':53} {text}\n")
+
+    file.write("\n\n\n")
+
     # Write hints
     file.write("Hints:\n")
     for hintloc in areas.gossip_stones:

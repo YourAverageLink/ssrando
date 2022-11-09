@@ -22,6 +22,7 @@ class PlacementFile:
         self.chest_dowsing = {}
         self.gossip_stone_hints = {}
         self.trial_hints = {}
+        self.npc_hints = {}
         self.dungeon_connections = {}
         self.trial_connections = {}
         self.trial_object_seed = -1
@@ -44,6 +45,7 @@ class PlacementFile:
             "chest-dowsing": self.chest_dowsing,
             "gossip-stone-hints": self.gossip_stone_hints,
             "trial-hints": self.trial_hints,
+            "npc-hints": self.npc_hints,
             "entrance-connections": self.dungeon_connections,
             "trial-connections": self.trial_connections,
             "trial-object-seed": self.trial_object_seed,

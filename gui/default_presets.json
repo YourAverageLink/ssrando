@@ -40,7 +40,7 @@
         "enabled-tricks-glitched": [],
         "song-hints": "None",
         "fix-bit-crashes": false,
-        "impa-sot-hint": false,
+        "impa-hint": "None",
         "sword-dungeon-reward": "None",
         "open-et": true,
         "demise-count": 1,
@@ -49,6 +49,7 @@
         "shuffle-trial-objects": "None",
         "chest-dowsing": "Vanilla",
         "dungeon-dowsing": false,
+        "npc-hints": false,
         "hint-distribution": "Balanced"
     },
     "3D Rupeesanity": {
@@ -92,7 +93,7 @@
         "enabled-tricks-glitched": [],
         "song-hints": "None",
         "fix-bit-crashes": false,
-        "impa-sot-hint": false,
+        "impa-hint": "None",
         "sword-dungeon-reward": "None",
         "open-et": true,
         "demise-count": 1,
@@ -101,6 +102,7 @@
         "shuffle-trial-objects": "Full",
         "chest-dowsing": "Vanilla",
         "dungeon-dowsing": false,
+        "npc-hints": false,
         "hint-distribution": "S2 - 3D"
     },
     "Allsanity": {
@@ -138,7 +140,7 @@
         "enabled-tricks-glitched": [],
         "song-hints": "None",
         "fix-bit-crashes": false,
-        "impa-sot-hint": true,
+        "impa-hint": "Stone of Trials",
         "sword-dungeon-reward": "None",
         "open-et": true,
         "demise-count": 1,
@@ -147,6 +149,7 @@
         "shuffle-trial-objects": "Full",
         "chest-dowsing": "Vanilla",
         "dungeon-dowsing": false,
+        "npc-hints": false,
         "hint-distribution": "S2 - 3D EUD Off"
     },
     "S2 - 3D Standard": {
@@ -191,7 +194,7 @@
         "enabled-tricks-glitched": [],
         "song-hints": "None",
         "fix-bit-crashes": false,
-        "impa-sot-hint": false,
+        "impa-hint": "None",
         "sword-dungeon-reward": "None",
         "open-et": true,
         "demise-count": 1,
@@ -200,6 +203,7 @@
         "shuffle-trial-objects": "None",
         "chest-dowsing": "Vanilla",
         "dungeon-dowsing": false,
+        "npc-hints": false,
         "hint-distribution": "S2 - 3D"
     },
     "S2 - 2D Cubes": {
@@ -243,7 +247,7 @@
         "enabled-tricks-glitched": [],
         "song-hints": "None",
         "fix-bit-crashes": false,
-        "impa-sot-hint": false,
+        "impa-hint": "None",
         "sword-dungeon-reward": "None",
         "open-et": true,
         "demise-count": 1,
@@ -252,6 +256,7 @@
         "shuffle-trial-objects": "None",
         "chest-dowsing": "Vanilla",
         "dungeon-dowsing": false,
+        "npc-hints": false,
         "hint-distribution": "S2 - 2D"
     },
     "S2 - 3D Open": {
@@ -296,6 +301,7 @@
         "song-hints": "None",
         "fix-bit-crashes": false,
         "impa-sot-hint": false,
+        "impa-hint": "None",
         "sword-dungeon-reward": "None",
         "open-et": true,
         "demise-count": 1,
@@ -304,6 +310,7 @@
         "shuffle-trial-objects": "None",
         "chest-dowsing": "Vanilla",
         "dungeon-dowsing": false,
+        "npc-hints": false,
         "hint-distribution": "S2 - 3D"
     },
     "S2 - 3D Swordless": {
@@ -348,7 +355,7 @@
         "enabled-tricks-glitched": [],
         "song-hints": "None",
         "fix-bit-crashes": false,
-        "impa-sot-hint": false,
+        "impa-hint": "None",
         "sword-dungeon-reward": "Final Check",
         "open-et": true,
         "demise-count": 1,
@@ -357,6 +364,7 @@
         "shuffle-trial-objects": "None",
         "chest-dowsing": "Vanilla",
         "dungeon-dowsing": false,
+        "npc-hints": false,
         "hint-distribution": "S2 - 3D"
     },
     "S2 - 3D EUD Off": {
@@ -401,7 +409,7 @@
         "enabled-tricks-glitched": [],
         "song-hints": "None",
         "fix-bit-crashes": false,
-        "impa-sot-hint": false,
+        "impa-hint": "None",
         "sword-dungeon-reward": "Final Check",
         "open-et": true,
         "demise-count": 1,
@@ -410,6 +418,7 @@
         "shuffle-trial-objects": "None",
         "chest-dowsing": "Vanilla",
         "dungeon-dowsing": false,
+        "npc-hints": false,
         "hint-distribution": "S2 - 3D EUD Off"
     },
     "S2 - Keysanity": {
@@ -454,7 +463,7 @@
         "enabled-tricks-glitched": [],
         "song-hints": "None",
         "fix-bit-crashes": false,
-        "impa-sot-hint": false,
+        "impa-hint": "None",
         "sword-dungeon-reward": "None",
         "open-et": true,
         "demise-count": 1,
@@ -463,6 +472,7 @@
         "shuffle-trial-objects": "None",
         "chest-dowsing": "Vanilla",
         "dungeon-dowsing": false,
+        "npc-hints": false,
         "hint-distribution": "S2 - 3D"
     }
 }
