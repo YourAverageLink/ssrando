@@ -327,12 +327,7 @@ class Logic:
             if it not in EXTENDED_ITEM:
                 continue
             bit = EXTENDED_ITEM[it]
-            if self.areas.requirements[bit].is_impossible() or bit not in pure_usefuls:
-                self.requirements[bit] &= banned_bit_inv
-            else:
-                raise ValueError(
-                    f"Cannot ban potentially inlined away requirement {it}"
-                )
+            self.requirements[bit] &= banned_bit_inv
 
         if optim:
             self.free_simplify(self.requirements, self.frees)
