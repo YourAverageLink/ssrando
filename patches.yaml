@@ -414,6 +414,16 @@ B301: # after Sandship boss
       story_flag1: -1
       story_flag2: 933 # set defeat tentalus storyflag
       item: -1
+  - name: Remove Nayru's Flame Cutscene
+    type: objpatch
+    room: 0
+    index: 3
+    objtype: SCEN
+    object:
+      name: F301
+      layer: 0
+      entrance: 3
+      saveprompt: 1
   - name: Fi text before FS CS
     type: objadd
     room: 0
@@ -3198,6 +3208,44 @@ F202: # Boko Base
       anglez: 0
       id: 0xFFFA
       name: Tubo
+  - name: patch rando custom param to not revert inventory
+    type: objpatch
+    id: 0xFC13
+    layer: 1
+    objtype: STAG
+    object:
+      params1: 0xFF5C1100
+      anglez: 0xFFFF # be always active
+  - name: delete other PlRsTags
+    type: objdelete
+    id: 0xFC12
+    layer: 1
+    objtype: STAG
+  - name: delete other PlRsTags
+    type: objdelete
+    id: 0xFC11
+    layer: 1
+    objtype: STAG
+  - name: delete other PlRsTags
+    type: objdelete
+    id: 0xFC10
+    layer: 1
+    objtype: STAG
+  - name: delete other PlRsTags
+    type: objdelete
+    id: 0xFC0F
+    layer: 1
+    objtype: STAG
+  - name: delete other PlRsTags
+    type: objdelete
+    id: 0xFC0E
+    layer: 1
+    objtype: STAG
+  - name: delete other PlRsTags
+    type: objdelete
+    id: 0xFC0D
+    layer: 1
+    objtype: STAG
 F221: # Fire Dragon Room
   - name: Patch exit trigger from Fire Dragon's Lair to normal Volcano Summit
     type: objpatch

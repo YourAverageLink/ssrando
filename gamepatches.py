@@ -108,26 +108,6 @@ DEFAULT_AREA = OrderedDict(
     dummy=b"\xFF\xFF\xFF",
 )
 
-# cutscenes to use to set storyflags, sceneflags and itemflags
-START_CUTSCENES = [
-    # stage, room, eventindex
-    ("F000", 0, 22),
-    ("F000", 0, 23),
-    ("F001r", 1, 2),
-    ("F405", 0, 0),
-]
-
-# The stage name of each dungeon
-DUNGEON_STAGES = {
-    SV: "D100",
-    AC: "D101",
-    ET: "D200",
-    FS: "D201",
-    LMF: "D300",
-    SSH: "D301",
-    SK: "D003_7",
-}
-
 # The stage for each map where there are dungeon entrances
 DUNGEON_ENTRANCE_STAGES = {
     # stage, room, scen
@@ -177,10 +157,10 @@ DUNGEON_FINISH_EXIT_SCEN = {
     # stage, room, index
     SV: ("B100_1", 0, 1),
     ET: ("B210", 0, 0),
-    LMF: ("F300_4", 0, 3),
-    AC: ("B101_1", 0, 3),
-    SSH: ("B301", 0, 4),
-    FS: ("B201_1", 0, 2),
+    LMF: ("F300_5", 0, 0),
+    AC: ("B101_1", 0, 2),
+    SSH: ("B301", 0, 3),
+    FS: ("B201_1", 0, 1),
     SK: ("F407", 0, 1),
 }
 
@@ -2749,48 +2729,36 @@ class GamePatcher:
 
     def do_patch_title_screen_logo(self):
         # patch title screen logo
-        actual_data = (
-            self.actual_extract_path
-            / "DATA"
-            / "files"
-            / "US"
-            / "Layout"
-            / "Title2D.arc"
-        ).read_bytes()
-        actual_arc = U8File.parse_u8(BytesIO(actual_data))
-        logodata = (self.rando_root_path / "assets" / "logo.tpl").read_bytes()
-        actual_arc.set_file_data("timg/tr_wiiKing2Logo_00.tpl", logodata)
-        (
+        title_2D_path = (
             self.modified_extract_path
             / "DATA"
             / "files"
             / "US"
             / "Layout"
             / "Title2D.arc"
-        ).write_bytes(actual_arc.to_buffer())
+        )
+        data = title_2D_path.read_bytes()
+        arc = U8File.parse_u8(BytesIO(data))
+        logodata = (self.rando_root_path / "assets" / "logo.tpl").read_bytes()
+        arc.set_file_data("timg/tr_wiiKing2Logo_00.tpl", logodata)
+        title_2D_path.write_bytes(arc.to_buffer())
 
     def do_patch_custom_dowsing_images(self):
         # patch propeller dowsing image; used for chest dowsing
-        actual_data = (
-            self.actual_extract_path
-            / "DATA"
-            / "files"
-            / "US"
-            / "Layout"
-            / "DoButton.arc"
-        ).read_bytes()
-        actual_arc = U8File.parse_u8(BytesIO(actual_data))
-        chestdata = (self.rando_root_path / "assets" / "chest_image.tpl").read_bytes()
-        actual_arc.set_file_data("timg/tr_dauzTarget_10.tpl", chestdata)
-        sandshipdata = (
-            self.rando_root_path / "assets" / "sandship_image.tpl"
-        ).read_bytes()
-        actual_arc.set_file_data("timg/tr_dauzTarget_18.tpl", sandshipdata)
-        (
+        do_button_path = (
             self.modified_extract_path
             / "DATA"
             / "files"
             / "US"
             / "Layout"
             / "DoButton.arc"
-        ).write_bytes(actual_arc.to_buffer())
+        )
+        data = do_button_path.read_bytes()
+        arc = U8File.parse_u8(BytesIO(data))
+        chestdata = (self.rando_root_path / "assets" / "chest_image.tpl").read_bytes()
+        arc.set_file_data("timg/tr_dauzTarget_10.tpl", chestdata)
+        sandshipdata = (
+            self.rando_root_path / "assets" / "sandship_image.tpl"
+        ).read_bytes()
+        arc.set_file_data("timg/tr_dauzTarget_18.tpl", sandshipdata)
+        do_button_path.write_bytes(arc.to_buffer())
