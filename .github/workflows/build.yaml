@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.10"]
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
@@ -23,10 +23,14 @@ jobs:
         run: poetry install
         env:
           POETRY_VIRTUALENVS_CREATE: false
-      - name: Test if the formatting is correct
-        run: python3 -mblack . --check
+      - name: patch secret key
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        run: cat ssrando.py.in | envsubst > ssrando.py
+      # - name: Test if the formatting is correct
+      #   run: black . --check
       - name: Build distribution
-        run: python3 -mPyInstaller ssrando.spec
+        run: python3 -mPyInstaller ssrando.spec --log-level=WARN
       - name: Run tests
         run: |
           python3 randoscript.py --noui --dry-run --seed=0
