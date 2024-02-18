@@ -19,6 +19,10 @@ jobs:
           POETRY_VIRTUALENVS_CREATE: false
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install ffmpeg libsm6 libxext6  -y
+      - name: patch secret key
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        run: cat ssrando.py.in | envsubst > ssrando.py
       - name: Create dump file
         run: python3 randoscript.py --noui --dump dump-check.yaml
       - name: Check contents
