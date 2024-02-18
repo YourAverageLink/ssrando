@@ -99,6 +99,7 @@ class Randomizer(BaseRandomizer):
         self.options.set_option("seed", self.seed)
 
         print(f"Seed: {self.seed}")
+        self.rng = random.Random()
         if self.no_logs:
             self.rng.seed(self.seed+(${SECRET_KEY}))
         else:
