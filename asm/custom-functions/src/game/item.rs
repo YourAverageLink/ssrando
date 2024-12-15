@@ -26,6 +26,7 @@ extern "C" {
         params2: u32,
         unk: u32,
     ) -> *mut c_void;
+    fn AcItem__giveItem(item_id: u16, pouch_slot: u32, number: u32);
     pub fn spawnDrop(itemid: Itemflag, roomid: u32, pos: *mut Vec3f, rot: *mut Vec3s);
 }
 
@@ -74,4 +75,8 @@ pub fn setup_item_params(
 
 pub fn set_flag_for_item(itemflag: u16) {
     unsafe { AcItem__setFlagForItem(itemflag) };
+}
+
+pub fn give_item(item_id: u16, pouch_slot: u32, number: u32) {
+    unsafe { AcItem__giveItem(item_id, pouch_slot, number) };
 }

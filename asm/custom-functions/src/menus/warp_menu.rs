@@ -1,10 +1,12 @@
 use crate::game::reloader;
 use crate::game::stage_info::*;
 use crate::menus::main_menu::MainMenu;
-use crate::menus::simple_menu::SimpleMenu;
 use crate::system::button::*;
+use crate::utils::menu::SimpleMenu;
 
-const NUM_ENTRIES_MAIN: u8 = 7;
+use super::Menu;
+
+use core::ptr::addr_of_mut;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum WarpState {
@@ -14,105 +16,73 @@ enum WarpState {
     Details,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-enum WarpStage {
-    Sky,
-    Faron,
-    Eldin,
-    Lanayru,
-    SealedGrounds,
-    Dungeon,
-    SilentRealm,
-    None,
-}
-
-impl WarpStage {
-    fn from_idx(idx: usize) -> Self {
-        match idx {
-            0 => WarpStage::Sky,
-            1 => WarpStage::Faron,
-            2 => WarpStage::Eldin,
-            3 => WarpStage::Lanayru,
-            4 => WarpStage::SealedGrounds,
-            5 => WarpStage::Dungeon,
-            6 => WarpStage::SilentRealm,
-            _ => WarpStage::None,
-        }
-    }
-    fn get_name(&self) -> &'static str {
-        match self {
-            WarpStage::Sky => THE_SKY.name,
-            WarpStage::Faron => FARON.name,
-            WarpStage::Eldin => ELDIN.name,
-            WarpStage::Lanayru => LANAYRU.name,
-            WarpStage::SealedGrounds => SEALED_GROUNDS.name,
-            WarpStage::Dungeon => DUNGEONS.name,
-            WarpStage::SilentRealm => SILENT_REALMS.name,
-            WarpStage::None => "None",
-        }
-    }
-
-    fn get_num_stages(&self) -> u8 {
-        match self {
-            WarpStage::Sky => THE_SKY.stages.len(),
-            WarpStage::Faron => FARON.stages.len(),
-            WarpStage::Eldin => ELDIN.stages.len(),
-            WarpStage::Lanayru => LANAYRU.stages.len(),
-            WarpStage::SealedGrounds => SEALED_GROUNDS.stages.len(),
-            WarpStage::Dungeon => DUNGEONS.stages.len(),
-            WarpStage::SilentRealm => SILENT_REALMS.stages.len(),
-            WarpStage::None => 0,
-        }
-        .try_into()
-        .unwrap()
-    }
-
-    fn get_stage_info(&self, idx: u8) -> StageInfo {
-        match self {
-            WarpStage::Sky => THE_SKY.stages[idx as usize],
-            WarpStage::Faron => FARON.stages[idx as usize],
-            WarpStage::Eldin => ELDIN.stages[idx as usize],
-            WarpStage::Lanayru => LANAYRU.stages[idx as usize],
-            WarpStage::SealedGrounds => SEALED_GROUNDS.stages[idx as usize],
-            WarpStage::Dungeon => DUNGEONS.stages[idx as usize],
-            WarpStage::SilentRealm => SILENT_REALMS.stages[idx as usize],
-            WarpStage::None => StageInfo::default(),
-        }
-    }
-
-    fn get_stage_name(&self, idx: u8) -> &'static str {
-        self.get_stage_info(idx).name
-    }
-
-    fn get_stage_pretty_name(&self, idx: u8) -> &'static str {
-        self.get_stage_info(idx).pretty_name
-    }
-}
+const STAGES: [&StageCategory; 7] = [
+    &THE_SKY,
+    &FARON,
+    &ELDIN,
+    &LANAYRU,
+    &SEALED_GROUNDS,
+    &DUNGEONS,
+    &SILENT_REALMS,
+];
 
 pub struct WarpMenu {
     state:             WarpState,
-    stage_state:       WarpStage,
     stage_selected:    [u8; 8],
-    main_cursor:       u8,
-    stage_cursor:      u8,
-    detail_cursor:     u8,
+    main_cursor:       u32,
+    stage_cursor:      u32,
+    detail_cursor:     u32,
     selected_room:     u8,
     selected_layer:    u8,
     selected_entrance: u8,
 }
 
 impl WarpMenu {
-    fn get_room(&self) -> u8 {
-        self.stage_state.get_stage_info(self.stage_cursor).rooms[self.selected_room as usize]
+    fn get_stages(&mut self) -> &'static [StageInfo] {
+        if STAGES.len() <= self.main_cursor as usize {
+            self.main_cursor = 0;
+        }
+        STAGES[self.main_cursor as usize].stages
     }
-    fn get_layer(&self) -> u8 {
-        self.stage_state.get_stage_info(self.stage_cursor).layers[self.selected_layer as usize]
+
+    fn get_stage(&mut self) -> &'static StageInfo {
+        let stages = self.get_stages();
+        if stages.len() <= self.stage_cursor as usize {
+            self.stage_cursor = 0;
+        }
+        &stages[self.stage_cursor as usize]
     }
+
+    fn get_rooms(&mut self) -> &'static [u8] {
+        self.get_stage().rooms
+    }
+
+    fn get_layers(&mut self) -> &'static [u8] {
+        self.get_stage().layers
+    }
+
+    fn get_room(&mut self) -> u8 {
+        let rooms = self.get_rooms();
+        if rooms.len() <= self.selected_room as usize {
+            self.selected_room = 0;
+        }
+        rooms[self.selected_room as usize]
+    }
+
+    fn get_layer(&mut self) -> u8 {
+        let layers = self.get_layers();
+        if layers.len() <= self.selected_layer as usize {
+            self.selected_layer = 0;
+        }
+        layers[self.selected_layer as usize]
+    }
+
     fn get_entrance(&self) -> u8 {
         self.selected_entrance
     }
+
     fn warp(&mut self) {
-        let stage_name = self.stage_state.get_stage_name(self.stage_cursor);
+        let stage_name = self.get_stage().name;
         for n in 0..8 {
             self.stage_selected[n] = if n < stage_name.len() {
                 stage_name.as_bytes()[n] as u8
@@ -123,8 +93,8 @@ impl WarpMenu {
         let room = self.get_room();
         let layer = self.get_layer();
         let entrance = self.get_entrance();
-        let forced_night: u8 = match self.stage_state {
-            WarpStage::Sky => {
+        let forced_night: u8 = match self.main_cursor {
+            0 => {
                 if layer % 2 == 0 {
                     0
                 } else {
@@ -133,10 +103,7 @@ impl WarpMenu {
             },
             _ => 0,
         };
-        let forced_trial: u8 = match self.stage_state {
-            WarpStage::SilentRealm => 1,
-            _ => 0,
-        };
+        let forced_trial: u8 = if self.stage_selected[0] == b'S' { 1 } else { 0 };
         let transition_type = 0;
         reloader::trigger_entrance(
             self.stage_selected.as_ptr(),
@@ -153,20 +120,12 @@ impl WarpMenu {
     }
 
     fn change_room(&mut self, num: i8) {
-        let num_rooms = self
-            .stage_state
-            .get_stage_info(self.stage_cursor)
-            .rooms
-            .len();
+        let num_rooms = self.get_rooms().len();
         self.selected_room =
             (self.selected_room as i8 + num_rooms as i8 + num) as u8 % num_rooms as u8;
     }
     fn change_layer(&mut self, num: i8) {
-        let num_layers = self
-            .stage_state
-            .get_stage_info(self.stage_cursor)
-            .layers
-            .len();
+        let num_layers = self.get_layers().len();
         self.selected_layer =
             (self.selected_layer as i8 + num_layers as i8 + num) as u8 % num_layers as u8;
     }
@@ -179,7 +138,6 @@ impl WarpMenu {
 #[no_mangle]
 static mut WARP_MENU: WarpMenu = WarpMenu {
     state:             WarpState::Off,
-    stage_state:       WarpStage::None,
     stage_selected:    [0u8; 8],
     main_cursor:       0,
     stage_cursor:      0,
@@ -189,156 +147,107 @@ static mut WARP_MENU: WarpMenu = WarpMenu {
     selected_entrance: 0,
 };
 
-impl WarpMenu {
-    pub fn enable() {
-        unsafe { WARP_MENU.state = WarpState::Main };
+impl Menu for WarpMenu {
+    fn enable() {
+        let warp_menu = unsafe { &mut *addr_of_mut!(WARP_MENU) };
+        warp_menu.state = WarpState::Main;
+    }
+    fn disable() {
+        let warp_menu = unsafe { &mut *addr_of_mut!(WARP_MENU) };
+        warp_menu.state = WarpState::Off;
     }
 
-    pub fn input() -> bool {
+    fn is_active() -> bool {
+        let warp_menu = unsafe { &mut *addr_of_mut!(WARP_MENU) };
+        warp_menu.state != WarpState::Off
+    }
+
+    fn input() {
+        let warp_menu = unsafe { &mut *addr_of_mut!(WARP_MENU) };
+
         let b_pressed = is_pressed(B);
         let a_pressed = is_pressed(A);
-        let up_pressed = is_pressed(DPAD_UP);
-        let down_pressed = is_pressed(DPAD_DOWN);
         let right_pressed = is_pressed(DPAD_RIGHT);
         let left_pressed = is_pressed(DPAD_LEFT);
 
-        let mut next_state = unsafe { WARP_MENU.state };
-
-        match next_state {
+        match warp_menu.state {
             WarpState::Off => {},
             WarpState::Main => {
                 if b_pressed {
-                    next_state = WarpState::Off;
+                    warp_menu.state = WarpState::Off;
                 } else if a_pressed {
-                    next_state = WarpState::Stage;
-                    unsafe {
-                        WARP_MENU.stage_state = WarpStage::from_idx(WARP_MENU.main_cursor.into());
-                        if WARP_MENU.stage_cursor >= WARP_MENU.stage_state.get_num_stages() {
-                            WARP_MENU.stage_cursor = 0;
-                        }
-                    }
-                } else if up_pressed {
-                    unsafe {
-                        WARP_MENU.main_cursor =
-                            (WARP_MENU.main_cursor + NUM_ENTRIES_MAIN - 1) % NUM_ENTRIES_MAIN;
-                    }
-                } else if down_pressed {
-                    unsafe {
-                        WARP_MENU.main_cursor = (WARP_MENU.main_cursor + 1) % NUM_ENTRIES_MAIN;
-                    }
+                    warp_menu.state = WarpState::Stage;
                 }
             },
             WarpState::Stage => {
                 if b_pressed {
-                    next_state = WarpState::Main;
-                    unsafe { WARP_MENU.stage_state = WarpStage::None };
+                    warp_menu.state = WarpState::Main;
                 } else if a_pressed {
-                    next_state = WarpState::Details;
-                } else if up_pressed {
-                    unsafe {
-                        let num_entries = WARP_MENU.stage_state.get_num_stages();
-                        WARP_MENU.stage_cursor =
-                            (WARP_MENU.stage_cursor + num_entries - 1) % num_entries;
-                    }
-                } else if down_pressed {
-                    unsafe {
-                        let num_entries = WARP_MENU.stage_state.get_num_stages();
-                        WARP_MENU.stage_cursor = (WARP_MENU.stage_cursor + 1) % num_entries;
-                    }
+                    warp_menu.state = WarpState::Details;
                 }
             },
             WarpState::Details => {
                 if b_pressed {
-                    next_state = WarpState::Stage;
-                    unsafe {
-                        WARP_MENU.selected_entrance = 0;
-                        WARP_MENU.selected_room = 0;
-                        WARP_MENU.selected_layer = 0;
-                    }
+                    warp_menu.state = WarpState::Stage;
                 } else if a_pressed {
-                    unsafe { WARP_MENU.warp() };
-                    unsafe { WARP_MENU.stage_state = WarpStage::None };
-                    next_state = WarpState::Off;
+                    warp_menu.warp();
+                    warp_menu.state = WarpState::Off;
                     MainMenu::disable();
-                    unsafe {
-                        WARP_MENU.selected_entrance = 0;
-                        WARP_MENU.selected_room = 0;
-                        WARP_MENU.selected_layer = 0;
-                    }
-                } else if up_pressed {
-                    unsafe {
-                        WARP_MENU.detail_cursor = (WARP_MENU.detail_cursor + 3 - 1) % 3;
-                    }
-                } else if down_pressed {
-                    unsafe {
-                        WARP_MENU.detail_cursor = (WARP_MENU.detail_cursor + 1) % 3;
-                    }
                 } else if right_pressed || left_pressed {
-                    unsafe {
-                        match WARP_MENU.detail_cursor {
-                            0 => WARP_MENU.change_room(if right_pressed { 1 } else { -1 }),
-                            1 => WARP_MENU.change_layer(if right_pressed { 1 } else { -1 }),
-                            2 => WARP_MENU.change_entrance(if right_pressed { 1 } else { -1 }),
-                            _ => {},
-                        }
+                    match warp_menu.detail_cursor {
+                        0 => warp_menu.change_room(if right_pressed { 1 } else { -1 }),
+                        1 => warp_menu.change_layer(if right_pressed { 1 } else { -1 }),
+                        2 => warp_menu.change_entrance(if right_pressed { 1 } else { -1 }),
+                        _ => {},
                     }
                 }
             },
         }
-
-        unsafe { WARP_MENU.state = next_state };
-        return next_state == WarpState::Off;
     }
 
-    pub fn display() {
-        match unsafe { WARP_MENU.state } {
-            WarpState::Details => {
-                let mut detail_menu = SimpleMenu::<5, 25>::new(10, 10, 10, unsafe {
-                    WARP_MENU.stage_state.get_stage_name(WARP_MENU.stage_cursor)
-                });
-                detail_menu.current_line = unsafe { WARP_MENU.detail_cursor.into() };
-                let (room, layer, entrance) = unsafe {
-                    (
-                        WARP_MENU.get_room(),
-                        WARP_MENU.get_layer(),
-                        WARP_MENU.get_entrance(),
-                    )
-                };
-                detail_menu.add_entry_args(format_args!("Room: {room}"));
-                detail_menu.add_entry_args(format_args!("Layer: {layer}"));
-                detail_menu.add_entry_args(format_args!("Entrance: {entrance}"));
-                detail_menu.draw();
-            },
-            _ => {
-                let mut main_menu = SimpleMenu::<{ NUM_ENTRIES_MAIN as usize + 2 }, 17>::new(
-                    10,
-                    10,
-                    10,
-                    "Select Stage",
-                );
-                main_menu.current_line = unsafe { WARP_MENU.main_cursor as u32 };
-                main_menu.add_entry("Sky");
-                main_menu.add_entry("Faron");
-                main_menu.add_entry("Eldin");
-                main_menu.add_entry("Lanayru");
-                main_menu.add_entry("Sealed Grounds");
-                main_menu.add_entry("Dungeons");
-                main_menu.add_entry("Silent Realms");
-                main_menu.draw();
+    fn display() {
+        let warp_menu = unsafe { &mut *addr_of_mut!(WARP_MENU) };
 
-                let stage_state = unsafe { WARP_MENU.stage_state };
-                match stage_state {
-                    WarpStage::None => {},
-                    _ => {
-                        let mut sub_menu =
-                            SimpleMenu::<25, 39>::new(200, 5, 10, stage_state.get_name());
-                        sub_menu.current_line = unsafe { WARP_MENU.stage_cursor as u32 };
-                        for n in 0..stage_state.get_num_stages() as u8 {
-                            sub_menu.add_entry(stage_state.get_stage_pretty_name(n));
-                        }
-                        sub_menu.draw();
-                    },
+        match warp_menu.state {
+            WarpState::Off => {},
+            WarpState::Main => {
+                let mut menu: SimpleMenu<{ STAGES.len() }> = SimpleMenu::new();
+                menu.set_heading("Warp Menu");
+                menu.set_cursor(warp_menu.main_cursor);
+                for stage in STAGES {
+                    menu.add_entry(stage.name);
                 }
+                menu.draw();
+
+                warp_menu.main_cursor = menu.move_cursor();
+            },
+            WarpState::Stage => {
+                let stage_ref = STAGES[warp_menu.main_cursor as usize];
+                let mut menu: SimpleMenu<30> = SimpleMenu::new();
+                menu.set_heading(stage_ref.name);
+                menu.set_cursor(warp_menu.stage_cursor);
+                for stage in stage_ref.stages {
+                    menu.add_entry(stage.pretty_name);
+                }
+                menu.draw();
+
+                warp_menu.stage_cursor = menu.move_cursor();
+            },
+            WarpState::Details => {
+                let mut menu: SimpleMenu<5> = SimpleMenu::new();
+                menu.set_heading(warp_menu.get_stage().name);
+                menu.set_cursor(warp_menu.detail_cursor);
+                let (room, layer, entrance) = (
+                    warp_menu.get_room(),
+                    warp_menu.get_layer(),
+                    warp_menu.get_entrance(),
+                );
+                menu.add_entry_fmt(format_args!("Room: {room}"));
+                menu.add_entry_fmt(format_args!("Layer: {layer}"));
+                menu.add_entry_fmt(format_args!("Entrance: {entrance}"));
+                menu.draw();
+
+                warp_menu.detail_cursor = menu.move_cursor();
             },
         }
     }

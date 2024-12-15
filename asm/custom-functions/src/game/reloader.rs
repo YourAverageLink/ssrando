@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use core::ptr::addr_of_mut;
+use core::{ffi::c_void, ptr::addr_of_mut};
 
 #[repr(C)]
 pub struct SpawnStruct {
@@ -34,8 +34,11 @@ pub struct Reloader {
 }
 
 extern "C" {
+    static mut SPAWN_MASTER: SpawnStruct;
     static mut SPAWN_SLAVE: SpawnStruct;
     static mut RELOADER_PTR: *mut Reloader;
+    static mut RELOADER_TYPE: u8;
+    fn RoomManager__getRoomByIndex(room_mgr: *mut c_void, room_number: u32);
     fn Reloader__setReloadTrigger(reloader: *mut Reloader, trigger: u8);
     fn actuallyTriggerEntrance(
         stage_name: *const u8,
@@ -54,12 +57,20 @@ pub fn get_ptr() -> *mut Reloader {
     unsafe { RELOADER_PTR }
 }
 
+pub fn get_spawn_master() -> &'static mut SpawnStruct {
+    return unsafe { &mut *addr_of_mut!(SPAWN_MASTER) };
+}
+
 pub fn get_spawn_slave() -> &'static mut SpawnStruct {
     return unsafe { &mut *addr_of_mut!(SPAWN_SLAVE) };
 }
 
 pub fn set_reload_trigger(trigger: u8) {
     unsafe { Reloader__setReloadTrigger(RELOADER_PTR, trigger) };
+}
+
+pub fn set_reloader_type(val: u8) {
+    unsafe { RELOADER_TYPE = val };
 }
 
 pub fn trigger_entrance(

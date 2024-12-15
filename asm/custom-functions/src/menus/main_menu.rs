@@ -1,20 +1,38 @@
-use super::sample_menu::SampleMenu;
-use super::simple_menu::SimpleMenu;
+use super::action_menu::ActionMenu;
+use super::display_menu::DisplayMenu;
 use super::warp_menu::WarpMenu;
 use crate::system::button::*;
+use crate::utils::char_writer::TextWriterBase;
+use crate::utils::graphics::draw_rect;
+use crate::utils::menu::SimpleMenu;
+
+use wchar::wchz;
+
+use core::ptr::addr_of_mut;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum MenuState {
     Off,
     MenuSelect,
-    SampleMenu,
+    DisplayMenu,
     WarpMenu,
+    ActionMenu,
 }
-const NUM_MENU_ENTRIES: usize = 2;
+
+impl MenuState {
+    fn from_u32(num: u32) -> MenuState {
+        match num {
+            0 => MenuState::DisplayMenu,
+            1 => MenuState::WarpMenu,
+            2 => MenuState::ActionMenu,
+            _ => MenuState::MenuSelect,
+        }
+    }
+}
 
 pub struct MainMenu {
     state:       MenuState,
-    main_cursor: usize,
+    cursor:      u32,
     force_close: bool,
 }
 
@@ -22,77 +40,114 @@ pub struct MainMenu {
 #[no_mangle]
 pub static mut MAIN_MENU: MainMenu = MainMenu {
     state:       MenuState::Off,
-    main_cursor: 0,
+    cursor:      0,
     force_close: false,
 };
 
-impl MainMenu {
-    // returns treu if menu is active
-    pub fn disable() {
-        unsafe { MAIN_MENU.force_close = true };
-        set_buttons_not_pressed(B);
-    }
+impl super::Menu for MainMenu {
+    fn enable() {
+        if MainMenu::is_active() {
+            return;
+        };
 
-    pub fn display() -> bool {
-        let mut next_menu = unsafe { MAIN_MENU.state };
-        match unsafe { MAIN_MENU.state } {
-            MenuState::Off => {
-                if is_down(DPAD_RIGHT) && is_down(TWO) {
-                    next_menu = MenuState::MenuSelect;
-                }
-            },
+        if is_down(Buttons::DPAD_RIGHT | Buttons::TWO) {
+            unsafe { MAIN_MENU.state = MenuState::MenuSelect };
+        }
+    }
+    fn disable() {
+        unsafe { MAIN_MENU.force_close = true };
+        // Removes possible interaction with the game
+        set_buttons_not_pressed(
+            Buttons::B
+                | Buttons::A
+                | Buttons::DPAD_RIGHT
+                | Buttons::DPAD_DOWN
+                | Buttons::DPAD_LEFT
+                | Buttons::DPAD_UP
+                | Buttons::TWO,
+        );
+    }
+    fn input() {
+        let main_menu = unsafe { &mut *addr_of_mut!(MAIN_MENU) };
+        match main_menu.state {
+            // MenuState::Off => {},
             MenuState::MenuSelect => {
-                let mut menu = SimpleMenu::<5, 20>::new(10, 10, 10, "Main Menu Select");
-                menu.current_line = unsafe { MAIN_MENU.main_cursor as u32 };
-                menu.add_entry("Sample Menu");
-                menu.add_entry("Warp Menu");
-                menu.draw();
                 if is_pressed(B) {
-                    next_menu = MenuState::Off;
+                    main_menu.state = MenuState::Off;
                     set_buttons_not_pressed(B);
                 } else if is_pressed(A) {
-                    next_menu = match menu.current_line {
-                        0 => {
-                            SampleMenu::enable();
-                            MenuState::SampleMenu
-                        },
-                        1 => {
-                            WarpMenu::enable();
-                            MenuState::WarpMenu
-                        },
-                        _ => next_menu,
+                    main_menu.state = MenuState::from_u32(main_menu.cursor);
+                    match main_menu.state {
+                        MenuState::DisplayMenu => DisplayMenu::enable(),
+                        MenuState::WarpMenu => WarpMenu::enable(),
+                        MenuState::ActionMenu => ActionMenu::enable(),
+                        _ => {},
                     };
-                } else if is_pressed(DPAD_UP) {
-                    unsafe {
-                        MAIN_MENU.main_cursor = (MAIN_MENU.main_cursor + NUM_MENU_ENTRIES - 1) % 2;
-                    }
-                } else if is_pressed(DPAD_DOWN) {
-                    unsafe {
-                        MAIN_MENU.main_cursor = (MAIN_MENU.main_cursor + 1) % 2;
-                    }
                 }
             },
-            MenuState::SampleMenu => {
-                SampleMenu::display();
-                if SampleMenu::input() {
-                    next_menu = MenuState::MenuSelect;
+            MenuState::DisplayMenu => DisplayMenu::input(),
+            MenuState::WarpMenu => WarpMenu::input(),
+            MenuState::ActionMenu => ActionMenu::input(),
+            _ => {},
+        }
+    }
+    fn display() {
+        let main_menu = unsafe { &mut *addr_of_mut!(MAIN_MENU) };
+
+        // Draw the input Guide
+        if MainMenu::is_active() {
+            draw_rect(0f32, 0f32, 640f32, 480f32, 0.0f32, 0x000000C0);
+            let mut writer = TextWriterBase::new();
+            writer.set_font_color(0xFFFFFFFF, 0xFFFFFFFF);
+            writer.set_position(10f32, 420f32);
+            writer.print_symbol(wchz!(u16, "\x20"));
+            writer.print(wchz!(u16, "Select\t"));
+            writer.print_symbol(wchz!(u16, "\x21"));
+            writer.print(wchz!(u16, "Back\t"));
+            writer.print_symbol(wchz!(u16, "\x2F\x30"));
+            writer.print(wchz!(u16, "Up/Down\t"));
+            writer.print_symbol(wchz!(u16, "\x31\x32"));
+            writer.print(wchz!(u16, "Change Value"));
+        }
+
+        match main_menu.state {
+            MenuState::Off => {},
+            MenuState::MenuSelect => {
+                let mut menu: SimpleMenu<5> = SimpleMenu::new();
+                menu.set_heading("Main Menu Select");
+                menu.set_cursor(main_menu.cursor);
+                menu.add_entry("On Screen Display");
+                menu.add_entry("Warp");
+                menu.add_entry("Actions");
+                menu.draw();
+
+                main_menu.cursor = menu.move_cursor();
+            },
+            MenuState::DisplayMenu => {
+                DisplayMenu::display();
+                if !DisplayMenu::is_active() {
+                    main_menu.state = MenuState::MenuSelect;
                 }
             },
             MenuState::WarpMenu => {
                 WarpMenu::display();
-                if WarpMenu::input() {
-                    next_menu = MenuState::MenuSelect;
+                if !WarpMenu::is_active() {
+                    main_menu.state = MenuState::MenuSelect;
+                }
+            },
+            MenuState::ActionMenu => {
+                ActionMenu::display();
+                if !ActionMenu::is_active() {
+                    main_menu.state = MenuState::MenuSelect;
                 }
             },
         }
-        unsafe {
-            if MAIN_MENU.force_close {
-                MAIN_MENU.force_close = false;
-                MAIN_MENU.state = MenuState::Off;
-            } else {
-                MAIN_MENU.state = next_menu;
-            }
+        if main_menu.force_close {
+            main_menu.force_close = false;
+            main_menu.state = MenuState::Off;
         }
-        return next_menu != MenuState::Off;
+    }
+    fn is_active() -> bool {
+        unsafe { MAIN_MENU.state != MenuState::Off }
     }
 }

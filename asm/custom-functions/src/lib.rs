@@ -10,9 +10,9 @@
 #![deny(improper_ctypes_definitions)]
 
 extern crate alloc;
-use crate::menus::main_menu::MainMenu;
 
 mod game;
+mod live_info;
 mod menus;
 mod rando;
 mod system;
@@ -36,21 +36,16 @@ macro_rules! println {
 }
 
 // A Common Place where Custom code can be injected to run once per frame
-// Returns whether or not to stop (0 == continue)
-// Its current by changing r31 we can stop the game :D
+// Returns whether or not to stop (1 == continue)
 #[no_mangle]
-fn custom_main_additions(in_r31: u32) -> u32 {
-    let mut ret_val = in_r31;
-
-    // Example menu
-    if in_r31 == 0 && MainMenu::display() {
-        ret_val = 1;
+fn custom_main_additions() -> u32 {
+    menus::update();
+    if menus::is_active() {
+        return 0;
     }
+    live_info::display();
 
-    // Example Text
-    // write_text_on_screen();
-
-    return ret_val;
+    return 1;
 }
 
 #[panic_handler]

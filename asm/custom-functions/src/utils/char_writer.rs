@@ -93,6 +93,9 @@ impl TextWriterBase {
     // Returns if it is null
     pub fn set_font(&mut self, fontidx: u32) -> bool {
         self.char_writer.font_ptr = unsafe { FontMgr__GetFont(fontidx) };
+        if self.char_writer.font_ptr == 0 {
+            self.char_writer.font_ptr = unsafe { FontMgr__GetFont(0) };
+        }
         self.char_writer.font_ptr != 0
     }
 
