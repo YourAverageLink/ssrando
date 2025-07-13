@@ -23,10 +23,6 @@ jobs:
         run: poetry install
         env:
           POETRY_VIRTUALENVS_CREATE: false
-      - name: Patch secret key
-        env:
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-        run: cat ssrando.py.in | envsubst > ssrando.py
       # - name: Test if the formatting is correct
       #   run: black . --check
       - name: Build distribution
