@@ -101,7 +101,7 @@ class Randomizer(BaseRandomizer):
         print(f"Seed: {self.seed}")
         self.rng = random.Random()
         if self.no_logs:
-            seed = self.seed+(${SECRET_KEY})
+            seed = self.seed+(1234567890) # example key
             self.rng.seed(seed)
             for _ in range(100 + (seed % 256)):
                 self.rng.random()

@@ -168,7 +168,7 @@
   default: Anywhere
   help: "Choose where Triforces will appear in the game.
         **Vanilla**: Triforces are placed in their vanilla locations in Sky Keep.
-        **Sky Keep**: Triforecs are shuffled only within Sky Keep.
+        **Sky Keep**: Triforces are shuffled only within Sky Keep.
         **Anywhere**: Triforces are shuffled with all other valid locations in the game."
   ui: option_triforce_shuffle
 - name: Seed
@@ -578,9 +578,17 @@
   ui: option_sword_dungeon_reward
 - name: Open Earth Temple
   command: open-et
-  type: boolean
-  default: false
-  help: "If enabled, the Earth Temple door (requiring 5 key pieces to unlock) is opened at the start of the game."
+  type: singlechoice
+  bits: 2
+  choices:
+    - Open
+    - Shuffled (Eldin Volcano)
+    - Shuffled (Anywhere)
+  default: Shuffled (Anywhere)
+  help: "Determines how to place the pieces of the key opening the dungeon entrance in Eldin Volcano.
+        **Open**: The Earth Temple door is opened at the start of the game and Key Pieces are removed from the item pool.
+        **Shuffled (Eldin Volcano)**: The five Key Pieces will be shuffled in Eldin Volcano.
+        **Shuffled (Anywhere)**: The five Key Pieces will be shuffled anywhere in the world."
   ui: option_open_et
 - name: Demise Count
   command: demise-count
@@ -1122,7 +1130,8 @@
   type: boolean
   default: false
   permalink: true
-  help: "Randomizes the Isle of Songs puzzle and the Ancient Cistern/Sandship directional door puzzles."
+  help: "Randomizes the Isle of Songs puzzle, the Ancient Cistern/Sandship directional door puzzles,
+        and the Lanayru Mining Facility switches puzzle."
   ui: option_random_puzzles
 - name: Ammo Availability
   command: ammo-availability
