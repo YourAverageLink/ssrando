@@ -434,9 +434,13 @@ class LogicUtils(Logic):
         useless_regions = set(ALL_HINT_REGIONS)
         for c in useful_checks:
             check = self.areas.checks[c]
-            if (region := check.get("cube_region")) is None:
-                region = check["hint_region"]
+            region = check["hint_region"]
             useless_regions.discard(region)
+
+            # Useful goddess chests will barren block both the chest's region and the cube's region
+            if (cube_region := check.get("cube_region")) is not None:
+                useless_regions.discard(cube_region)
+
         useless_regions = sorted(useless_regions)
 
         checks_per_region = {k: 0 for k in ALL_HINT_REGIONS}

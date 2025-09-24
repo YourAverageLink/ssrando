@@ -588,16 +588,8 @@ class HintDistribution:
             goal = None
 
         if (zone := self.areas.checks[loc].get("cube_region")) is not None:
-            # place cube sots hint & catch specific zones and fit them into their general zone (as seen in the cube progress options)
+            # place cube sots hint
             if self.options["cube-sots"]:
-                if zone == SV:
-                    zone = FARON_WOODS
-                elif zone == MOGMA_TURF:
-                    zone = ELDIN_VOLCANO
-                elif zone == LANAYRU_MINE:
-                    zone = LANAYRU_DESERT
-                elif zone == LANAYRU_GORGE:
-                    zone = LANAYRU_SAND_SEA
                 # Importance doesn't matter for SotS hints, so just pass in Null
                 return CubeSotsGoalHint(loc, item, HINT_IMPORTANCE.Null, zone, goal)
         else:
