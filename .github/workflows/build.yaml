@@ -25,6 +25,10 @@ jobs:
           POETRY_VIRTUALENVS_CREATE: false
       # - name: Test if the formatting is correct
       #   run: black . --check
+      - name: Patch secret key
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        run: cat ssrando.py.in | envsubst > ssrando.py
       - name: Build distribution
         run: python3 -mPyInstaller ssrando.spec --log-level=WARN
       - name: Run tests
@@ -53,5 +57,5 @@ jobs:
           field: "tool.poetry.version"
       - uses: actions/upload-artifact@v4
         with:
-          name: SSR Race Features (Pre-S4) ${{ matrix.os }}
+          name: SSR Season 4 Tournament ${{ matrix.os }}
           path: dist
