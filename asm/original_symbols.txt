@@ -154,12 +154,17 @@ main.dol:
     CharWriter__GetFontHeight: 0x8042e670
     CharWriter__UpdateVertexColor: 0x8042eae0
     CharWriter__SetupGXWithColorMapping: 0x8042ec30
+    CharWriter__SetGradationMode: 0x8030b8c0
     __ct__TextWriterBase_WChar: 0x80431880
     __dt__TextWriterBase_WChar: 0x804318e0
     CalcStringRect_TextWriterBase_WChar: 0x80432470
     Print_TextWriterBase_WChar: 0x80432970
     Printf_TextWriterBase_WChar: 0x80432590
     PrintMutable_TextWriterBase_WChar: 0x80432c70
+    __ct__15dTagProcessor_cFv: 0x800B35C0
+    __dt__15dTagProcessor_cFv: 0x800B3820
+    FONT_COLORS_1: 0x805a7730
+    FONT_COLORS_2: 0x805a77f4
     # ----------------- GX Stuffs -----------------------------
     PSMTXIdentity: 0x803b7f40
     C_MTXOrtho: 0x803b9070

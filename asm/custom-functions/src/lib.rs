@@ -21,7 +21,11 @@ mod rvl_os;
 mod system;
 mod utils;
 
-use crate::rando::networking::{ServerProgress, CONNECTION_PORT, SOCK_STATUS};
+use alloc::boxed::Box;
+
+use crate::rando::networking::{ServerProgress, SOCK_STATUS};
+use crate::system::button;
+use crate::utils::char_writer::TagProcessor;
 use crate::utils::console::Console;
 use core::fmt::Write;
 
@@ -49,6 +53,9 @@ pub static mut SHOULD_PRINT_AP_BUFFER: bool = false;
 #[no_mangle]
 #[link_section = "data"]
 pub static mut SHOULD_OPEN_SOCKET: bool = false;
+#[no_mangle]
+#[link_section = "data"]
+pub static mut BUFFER_TAG_PROCESSOR: Option<Box<TagProcessor>> = None;
 
 static mut INIT_CONNECTION_TIMER: u8 = 255;
 
@@ -61,11 +68,23 @@ fn custom_main_additions() -> u32 {
             if INIT_CONNECTION_TIMER == 0 {
                 crate::rando::networking::run_net_init();
                 INIT_CONNECTION_TIMER = 255;
+                if BUFFER_TAG_PROCESSOR.is_none() {
+                    // Create our own tag processor; subtype 27 means text defaults to white
+                    BUFFER_TAG_PROCESSOR = Some(Box::new(TagProcessor::with_window_subtype(27)));
+                }
             } else if !SOCK_STATUS.active {
                 INIT_CONNECTION_TIMER -= 1;
             }
 
             display_socket_status();
+            if button::is_pressed(button::Z | button::C) {
+                // Toggle IP display
+                SOCK_STATUS.show_ip ^= true;
+            }
+        }
+
+        if SHOULD_PRINT_AP_BUFFER {
+            return crate::rando::print_archipelago_text();
         }
     }
 
@@ -111,15 +130,15 @@ fn display_socket_status() {
             },
         }
         console.draw(false);
-    } else if status.active && status.progress != ServerProgress::ConnectionEstablished {
+    } else if status.active && status.show_ip {
         let mut console = Console::with_pos(0f32, 0f32);
         console.set_bg_color(0x00000055);
         console.set_font_color(0xFFFFFFFF);
         console.set_font_size(0.5f32);
-        let _ = console.write_fmt(format_args!(
-            "Waiting for connection from AP client\nType /console {}",
-            status.ip
-        ));
+        if status.progress != ServerProgress::ConnectionEstablished {
+            let _ = console.write_str("Waiting for connection from AP client\n");
+        }
+        let _ = console.write_fmt(format_args!("Type /console {}", status.ip));
         console.draw(false);
     }
     // else if status.num_requests > 0 {

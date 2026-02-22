@@ -748,6 +748,7 @@ async fn try_net_init_stuff_server() -> Result<(), i32> {
                                         SOCK_STATUS.client_conn = Some(dest_addr);
                                         SOCK_STATUS.progress =
                                             ServerProgress::ConnectionEstablished;
+                                        SOCK_STATUS.show_ip = false;
                                     }
 
                                     // acknowledgement message for the AP client
@@ -826,6 +827,7 @@ async fn try_net_init_stuff_server() -> Result<(), i32> {
                                 unsafe {
                                     SOCK_STATUS.client_conn = None;
                                     SOCK_STATUS.progress = ServerProgress::BoundSocket;
+                                    SOCK_STATUS.show_ip = true;
                                 }
                             },
                             _ => {
@@ -845,6 +847,7 @@ async fn try_net_init_stuff_server() -> Result<(), i32> {
                                         SOCK_STATUS.client_conn = Some(dest_addr);
                                         SOCK_STATUS.progress =
                                             ServerProgress::ConnectionEstablished;
+                                        SOCK_STATUS.show_ip = false;
                                     }
 
                                     // Acknowledgement message for the AP client
@@ -927,6 +930,7 @@ pub struct APSocketStatus {
     pub ip:                 Ipv4Addr,
     pub client_conn:        Option<IpV4DestAddr>,
     pub active:             bool,
+    pub show_ip:            bool,
     pub last_error_code:    i32,
     pub progress:           ServerProgress,
     pub last_opened_socket: Option<i32>,
@@ -937,6 +941,7 @@ pub static mut SOCK_STATUS: APSocketStatus = APSocketStatus {
     ip:                 Ipv4Addr::new(0, 0, 0, 0),
     client_conn:        None,
     active:             false,
+    show_ip:            true,
     last_error_code:    0,
     progress:           ServerProgress::None,
     last_opened_socket: None,

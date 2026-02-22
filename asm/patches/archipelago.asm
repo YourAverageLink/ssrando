@@ -5,6 +5,9 @@
 .org 0x8005526c ; 4 free bytes in the dol that we can use to store a pointer to the text buffer
 .long archipelago_text_buffer
 
+.org 0x800b9270
+b add_more_colors
+
 ; .org 0x802569c8 ; end of AcItem::addToGetQueue
 ; b increment_item_queue
 

@@ -15,7 +15,7 @@ struct GameCharWriter {
     color_mapping:  [u32; 2],
     vertex_colors:  [u32; 4],
     text_color:     [u32; 2],
-    text_gradation: u32,
+    text_gradation: GradationMode,
     scale:          [f32; 2],
     cursor_pos:     [f32; 3],
     texture_filter: [u32; 2],
@@ -27,7 +27,6 @@ struct GameCharWriter {
 }
 
 #[repr(C)]
-#[derive(Default)]
 pub struct TextWriterBase {
     char_writer:   GameCharWriter,
     width_limit:   f32,
@@ -35,7 +34,39 @@ pub struct TextWriterBase {
     line_space:    f32,
     tab_width:     i32,
     draw_flag:     u32,
-    tag_processor: u32, // pointer to TagProcessor
+    tag_processor: *mut TagProcessor, // u32, // pointer to TagProcessor
+}
+
+impl Default for TextWriterBase {
+    fn default() -> Self {
+        Self {
+            char_writer:   GameCharWriter::default(),
+            width_limit:   0f32,
+            char_space:    0f32,
+            line_space:    0f32,
+            tab_width:     0,
+            draw_flag:     0,
+            tag_processor: core::ptr::null_mut(),
+        }
+    }
+}
+
+#[repr(C)]
+pub struct TagProcessor {
+    stuff0:             [u8; 0x90C],
+    msg_window_subtype: u8,          // 0x90C
+    stuff1:             [u8; 0x5D4], // 0xEF4 - 0x90D
+    is_shadow_text:     bool,        // 0xEE1
+    stuff2:             [u8; 0x12],  // 0xEF4 - 0xEE2
+}
+
+#[repr(C)]
+pub struct PrintContextWChar {
+    writer: *mut TextWriterBase, // at 0x0
+    str:    *const u16,          // at 0x4
+    x:      f32,                 // at 0x8
+    y:      f32,                 // at 0xC
+    flags:  u32,                 // at 0x10
 }
 
 #[repr(C)]
@@ -46,6 +77,19 @@ pub struct Rect {
     pub bottom: f32,
 }
 
+#[repr(C)]
+pub enum GradationMode {
+    NONE       = 0,
+    HORIZONTAL = 1,
+    VERTICAL   = 2,
+}
+
+impl Default for GradationMode {
+    fn default() -> Self {
+        Self::NONE
+    }
+}
+
 extern "C" {
     fn FontMgr__GetFont(idx: u32) -> u32;
 
@@ -54,6 +98,7 @@ extern "C" {
     fn CharWriter__SetupGX(writer: *mut GameCharWriter);
     fn CharWriter__SetupGXWithColorMapping(min: *const u32, max: *const u32);
     fn CharWriter__UpdateVertexColor(writer: *mut GameCharWriter);
+    fn CharWriter__SetGradationMode(writer: *mut GameCharWriter, mode: GradationMode);
     fn __ct__TextWriterBase_WChar(writer: *mut TextWriterBase);
     fn __dt__TextWriterBase_WChar(writer: *mut TextWriterBase, _: i32);
     fn Printf_TextWriterBase_WChar(writer: *mut TextWriterBase, str: *const u16, ...);
@@ -65,6 +110,8 @@ extern "C" {
         str: *const u16,
         len: u32,
     );
+    fn __ct__15dTagProcessor_cFv(processor: *mut TagProcessor);
+    fn __dt__15dTagProcessor_cFv(processor: *mut TagProcessor, _: i32);
 }
 
 // Destroys the TextWriter Properly
@@ -76,13 +123,33 @@ impl Drop for TextWriterBase {
     }
 }
 
+impl Drop for TagProcessor {
+    fn drop(&mut self) {
+        unsafe {
+            __dt__15dTagProcessor_cFv(self, -1);
+        }
+    }
+}
+
+impl Default for TagProcessor {
+    fn default() -> Self {
+        Self {
+            msg_window_subtype: 0,
+            is_shadow_text:     false,
+            stuff0:             [0; 0x90C],
+            stuff1:             [0; 0x5D4],
+            stuff2:             [0; 0x12],
+        }
+    }
+}
+
 impl TextWriterBase {
     pub fn new() -> Self {
         let mut text_writer = TextWriterBase::default();
         unsafe { __ct__TextWriterBase_WChar(&mut text_writer) };
         // Configure Color + Scale
         text_writer.char_writer.scale = [0.5f32, 0.5f32];
-        text_writer.char_writer.text_gradation = 2;
+        text_writer.char_writer.text_gradation = GradationMode::VERTICAL;
         text_writer.set_font_color(0x000000FF, 0x000000FF);
         text_writer.char_writer.color_mapping[0] = 0x00000000;
         text_writer.char_writer.color_mapping[1] = 0xFFFFFFFF;
@@ -115,6 +182,10 @@ impl TextWriterBase {
             return unsafe { CharWriter__GetFontHeight(&self.char_writer, b'!' as u16) };
         }
         return 0.0f32;
+    }
+
+    pub fn set_gradation_mode(&mut self, mode: GradationMode) {
+        self.char_writer.text_gradation = mode;
     }
 
     pub fn set_scale(&mut self, scale: f32) {
@@ -167,7 +238,7 @@ impl TextWriterBase {
         }
     }
 
-    pub fn set_tag_processor(&mut self, ptr: u32) {
+    pub fn set_tag_processor(&mut self, ptr: *mut TagProcessor) {
         self.tag_processor = ptr;
     }
 
@@ -193,9 +264,16 @@ impl TextWriterBase {
         // Save Colors and Background
         let old_colors = self.char_writer.text_color;
         let old_cursor_pos = self.char_writer.cursor_pos;
+        let mut tag_processor = unsafe { self.tag_processor.as_mut() };
 
         // Black background for readability
         unsafe { self.set_font_color(BACKGROUND_COLOR[0], BACKGROUND_COLOR[1]) };
+        match &mut tag_processor {
+            Some(t) => {
+                (*t).is_shadow_text = true;
+            },
+            None => {},
+        }
 
         // Print The Background
         unsafe { Print_TextWriterBase_WChar(self as *const _, string.as_ptr(), string.len() as _) };
@@ -203,6 +281,12 @@ impl TextWriterBase {
         // Restore old position and Color
         self.char_writer.cursor_pos = old_cursor_pos;
         self.set_font_color(old_colors[0], old_colors[1]);
+        match &mut tag_processor {
+            Some(t) => {
+                (*t).is_shadow_text = false;
+            },
+            None => {},
+        }
 
         // Print the foreground
         unsafe { Print_TextWriterBase_WChar(self as *const _, string.as_ptr(), string.len() as _) };
@@ -215,7 +299,7 @@ impl TextWriterBase {
         }
         let old_colors = self.char_writer.text_color;
         self.set_font_color(0xFFFFFFFF, 0xFFFFFFFF);
-        self.char_writer.text_gradation = 0;
+        self.char_writer.text_gradation = GradationMode::NONE;
         unsafe {
             CharWriter__SetupGX(&mut self.char_writer);
             GXSetAlphaCompare(
@@ -230,7 +314,24 @@ impl TextWriterBase {
             Print_TextWriterBase_WChar(self as *const _, string.as_ptr(), string.len() as u32);
         }
         self.set_font_color(old_colors[0], old_colors[1]);
-        self.char_writer.text_gradation = 2;
+        self.char_writer.text_gradation = GradationMode::NONE;
+    }
+}
+
+impl TagProcessor {
+    pub fn new() -> Self {
+        let mut processor = TagProcessor::default();
+        unsafe {
+            __ct__15dTagProcessor_cFv(&mut processor);
+        }
+
+        processor
+    }
+
+    pub fn with_window_subtype(window_subtype: u8) -> Self {
+        let mut processor = TagProcessor::new();
+        processor.msg_window_subtype = window_subtype;
+        processor
     }
 }
 

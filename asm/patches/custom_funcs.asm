@@ -379,8 +379,8 @@ b checkStoryflagIsSet
 .global remove_ammo_drops
 .global print_archipelago_text
 .global net_mgr_shutdown
-.global increment_item_queue
 .global decrement_item_queue
+.global add_more_colors
 
 .global give_archipelago_item
 give_archipelago_item:
