@@ -58,27 +58,27 @@ main.dol:
   load_arcs_for_tbox_item_get: 0x80682650
   unload_arcs_after_tbox_item_get: 0x80682684
   custom_main_additions: 0x806826C8
-  do_init_chain: 0x806840AC
-  net_init_callback: 0x8068423C
-  on_accept: 0x80684784
-  on_recv: 0x80684878
-  on_close: 0x80684CCC
-  on_write_return: 0x80684D80
-  net_mgr_shutdown: 0x806857D0
-  compiler_builtins::int::specialized_div_rem::u64_div_rem: 0x8068584C
-  compiler_builtins::int::udiv::__udivdi3: 0x80685AFC
-  IS_GETTING_ITEM: 0x80686C3F
-  DID_DIE: 0x80686C40
-  INIT_CHAIN_DATA_PTR: 0x80686C44
-  NET_MANAGER: 0x80686C48
-  FORCE_MOGMA_CAVE_DIVE: 0x80686E41
-  archipelago_text_buffer: 0x80686E42
-  ITEM_ID: 0x80687042
-  HERO_MODE_OPTIONS: 0x80687044
-  SHOULD_PRINT_AP_BUFFER: 0x80687098
-  SHOULD_OPEN_SOCKET: 0x80687099
-  BUFFER_TAG_PROCESSOR: 0x8068709C
-  CURR_AP_ARC: 0x806870B0
+  do_init_chain: 0x806840A0
+  net_init_callback: 0x80684230
+  on_accept: 0x80684778
+  on_recv: 0x8068486C
+  on_close: 0x80684CC0
+  on_write_return: 0x80684D74
+  net_mgr_shutdown: 0x806857C4
+  compiler_builtins::int::specialized_div_rem::u64_div_rem: 0x80685840
+  compiler_builtins::int::udiv::__udivdi3: 0x80685AF0
+  IS_GETTING_ITEM: 0x80686C2F
+  DID_DIE: 0x80686C30
+  INIT_CHAIN_DATA_PTR: 0x80686C34
+  NET_MANAGER: 0x80686C38
+  FORCE_MOGMA_CAVE_DIVE: 0x80686E31
+  archipelago_text_buffer: 0x80686E32
+  ITEM_ID: 0x80687032
+  HERO_MODE_OPTIONS: 0x80687034
+  SHOULD_PRINT_AP_BUFFER: 0x80687088
+  SHOULD_OPEN_SOCKET: 0x80687089
+  BUFFER_TAG_PROCESSOR: 0x8068708C
+  CURR_AP_ARC: 0x806870A0
 d_t_D3_scene_changeNP.rel:
   trigger_exit_one: 0x804
   trigger_exit_one_lbl: 0x340
