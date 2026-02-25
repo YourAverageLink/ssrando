@@ -68,6 +68,7 @@ main.dol:
     # index the client writes to to determine which items to give
     ARCHIPELAGO_ITEM_SLOTS: 0x80956F2A
     FRAME_COUNT: 0x80575798
+    MINIGAME_STATE: 0x80572250
     # --------------- ARC MANAGERS ----------------------------
     OARC_MANAGER: 0x80575280
     getModelDataFromOarc: 0x80069b30

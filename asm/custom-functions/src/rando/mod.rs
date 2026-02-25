@@ -12,6 +12,7 @@ use core::{
     str::from_utf8,
 };
 
+use alloc::str;
 use cstr::cstr;
 
 use wchar::wch;
@@ -26,8 +27,8 @@ use crate::{
         item::{self, Item},
         message::{text_manager_set_num_args, text_manager_set_string_arg, FlowElement},
         minigame::SpecialMinigameState,
-        player,
-        reloader::{self, Reloader},
+        player::{self, ActorLink},
+        reloader::{self, get_spawn_slave, Reloader},
     },
     rando::item_arc_loader::{check_arcs_loaded, load_arcs_for_item, unload_arcs_for_item},
     system::{button::*, math::*},
@@ -828,10 +829,11 @@ fn can_remove_textbox(item_id: u16) -> bool {
 // }
 // }
 
-const AP_ITEM_BUFFER_SIZE: usize = 6;
+const AP_ITEM_BUFFER_SIZE: usize = 14;
 
 extern "C" {
     static TITLE_LOADER_ADDR: u32;
+    static MINIGAME_STATE: u8;
     static mut ARCHIPELAGO_ITEM_SLOTS: [u8; AP_ITEM_BUFFER_SIZE]; // ring buffer
     static FRAME_COUNT: u32;
 }
@@ -846,7 +848,7 @@ extern "C" fn decrement_item_queue(item: *mut Item) {
             // we implement this as a ring buffer so it's guaranteed that any slot
             // that *was* 0xFF will stay 0xFF in the future (to avoid client race
             // conditions)
-            ARCHIPELAGO_ITEM_SLOTS[CURR_ITEM_SLOT] = 0xFF;
+            ARCHIPELAGO_ITEM_SLOTS[CURR_ITEM_SLOT] = EMPTY_SLOT;
             CURR_ITEM_SLOT += 1;
             if CURR_ITEM_SLOT == AP_ITEM_BUFFER_SIZE {
                 CURR_ITEM_SLOT = 0;
@@ -856,11 +858,8 @@ extern "C" fn decrement_item_queue(item: *mut Item) {
     }
 }
 
-// #[no_mangle]
-// static mut ARCHIPELAGO_ITEM_SLOT: u8 = 0xFF;
-
 #[no_mangle]
-static mut CURR_AP_ARC: u8 = 0xFF;
+static mut CURR_AP_ARC: u8 = EMPTY_SLOT;
 
 #[no_mangle]
 static mut IS_GETTING_ITEM: bool = false;
@@ -869,20 +868,56 @@ static mut IS_GETTING_ITEM: bool = false;
 static mut DID_DIE: bool = false;
 
 #[no_mangle]
+static mut DID_RESET: bool = false;
+
+#[no_mangle]
 static mut CURR_ITEM_SLOT: usize = 0;
 
 const AP_ITEM_MAGIC: u8 = 0xAB;
+const EMPTY_SLOT: u8 = 0x00;
 
-const ACTION_FLAG_MASK: u32 = 0xFFFFFFFF;
+const ACTION_FLAG_MASK: u32 = 0xFFFFFFFF; // 0x80040000
+
+fn can_receive_items(link: &ActorLink) -> bool {
+    match link.state & 0x00FFFFFF {
+        0 | 0x5A2C88 | 0x5A328C | 0xB4F450 | 0x5A31AC | 0x5A336C | 0x9796BC => {
+            return false;
+        },
+        _ => {},
+    }
+
+    match link.current_action {
+        0..=13 | 0x78 => {},
+        _ => {
+            return false;
+        },
+    }
+
+    // if link.actionflags & ACTION_FLAG_MASK == 0 {
+    //    return false;
+    // }
+
+    let spawn_slave = get_spawn_slave();
+    let stage = get_spawn_slave().name;
+    // don't give items in boss stages or dungeon crest areas
+    if stage[0] == b'B' {
+        return false;
+    }
+
+    // don't give items in the post-Harp sealed temple before Song from Impa
+    // (prevents accidentally deleting items due to the reload; kinda hacky)
+    if stage[0..4] == [b'F', b'4', b'0', b'2'] {
+        return spawn_slave.layer != 2 || SceneflagManager::check_global(10, 29);
+    }
+
+    unsafe { MINIGAME_STATE != 0 }
+}
 
 #[no_mangle]
 pub fn give_ap_rs() {
     if let Some(link) = player::as_ref() {
         // don't give items on the title screen!!
         if unsafe { TITLE_LOADER_ADDR } != 0 {
-            unsafe {
-                ARCHIPELAGO_ITEM_SLOTS = [0xFF; AP_ITEM_BUFFER_SIZE];
-            };
             return;
         }
         let item_id = unsafe { ARCHIPELAGO_ITEM_SLOTS[CURR_ITEM_SLOT] };
@@ -906,7 +941,7 @@ pub fn give_ap_rs() {
                 return;
             }
         }
-        if item_id == 0xFF {
+        if item_id == EMPTY_SLOT {
             // switch to next item in the ring buffer, try next frame
             unsafe {
                 CURR_ITEM_SLOT += 1;
@@ -916,10 +951,9 @@ pub fn give_ap_rs() {
             }
             return;
         }
-        // is Link on foot or in water?
-        // is the item ID not 0xFF?
         // is Link not receiving another item?
-        if link.actionflags & ACTION_FLAG_MASK != 0 && !getting_item {
+        // if not, can he safely get items?
+        if !getting_item && can_receive_items(link) {
             let is_minor_item = can_remove_textbox(item_id.into());
             if is_minor_item {
                 // just give the item directly, no need to load in any arcs
@@ -935,7 +969,7 @@ pub fn give_ap_rs() {
                     IS_GETTING_ITEM = true;
                 };
             } else {
-                if current_item_arc == 0xFF {
+                if current_item_arc == 0xFF || current_item_arc == EMPTY_SLOT {
                     load_arcs_for_item(item_id.into());
                     unsafe {
                         CURR_AP_ARC = item_id;
@@ -951,7 +985,7 @@ pub fn give_ap_rs() {
                     item::set_number_of_items(0);
                     unsafe {
                         (*item).unkfield = AP_ITEM_MAGIC;
-                        CURR_AP_ARC = 0xFF;
+                        CURR_AP_ARC = EMPTY_SLOT;
                         IS_GETTING_ITEM = true;
                     };
                     unload_arcs_for_item(item_id.into());
@@ -959,8 +993,11 @@ pub fn give_ap_rs() {
             }
         }
     } else {
+        // we should retry giving items if Link transitioned stages
+        // before finishing any itemgets
         unsafe {
             IS_GETTING_ITEM = false;
+            CURR_AP_ARC = EMPTY_SLOT;
         }
     }
 }
