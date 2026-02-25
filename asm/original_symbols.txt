@@ -66,7 +66,7 @@ main.dol:
     playSound: 0x8037ded0
     TITLE_LOADER_ADDR: 0x80575780
     # index the client writes to to determine which items to give
-    ARCHIPELAGO_ITEM_SLOT: 0x80956F2A
+    ARCHIPELAGO_ITEM_SLOTS: 0x80956F2A
     FRAME_COUNT: 0x80575798
     # --------------- ARC MANAGERS ----------------------------
     OARC_MANAGER: 0x80575280
