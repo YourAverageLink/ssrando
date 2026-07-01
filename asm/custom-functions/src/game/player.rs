@@ -15,7 +15,12 @@ pub struct ActorLink {
     pub actionflags:    u32,
     pub pad02:          [u8; 0x7], // 0x36F - 0x368
     pub current_action: u8,
-    pub pad03:          [u8; 0x4128], // 0x4498 - 0x370],
+    pub pad03:          [u8; 0x4009], // 0x4379 - 0x370],
+    pub field_0x4379:   u8,
+    pub field_0x437a:   u8,
+    pub pad04:          [u8; 0x60], // 0x43dc - 0x437c],
+    pub field_0x43dc:   u16,
+    pub pad05:          [u8; 0xB8], // 0x4498 - 0x43de],
     pub stamina_amount: u32,
     // More after
 }

@@ -13,22 +13,28 @@ use core::{
     task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
 };
 
-use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::string::ToString;
+use alloc::{boxed::Box, vec::Vec};
 use cstr::cstr;
 
 use crate::{
     game::flag_managers::{SceneflagManager, StoryflagManager},
     println,
+    rando::{
+        multiworld::{
+            self, read_bytes_from_address, write_bytes_to_address, APLocationInfo, APStatusReport,
+            ARCHIPELAGO_SLOT_NAME, ARCHIPELAGO_TEXT_BUFFER,
+        },
+        networking,
+    },
     rvl_mem::IosAllocator,
     system::{
         alarm::{OSAlarm, OSInsertAlarm},
         ios::{IOS_CloseAsync, IOS_IoctlAsync, IOS_IoctlvAsync, IOS_OpenAsync},
         time::get_time_base,
     },
-    utils::console::Console,
-    utils::AlignedBuf,
+    utils::{console::Console, AlignedBuf},
 };
 
 pub struct IosAsyncContext {
@@ -646,7 +652,7 @@ struct RequestFd {
 }
 
 pub const CONNECTION_PORT: u16 = 43673;
-const RECV_BUFFER_SIZE: usize = 600;
+const RECV_BUFFER_SIZE: usize = 4096;
 const SEND_BUFFER_SIZE: usize = 32;
 
 impl RequestFd {
@@ -677,7 +683,7 @@ impl RequestFd {
 }
 
 async fn net_init_stuff() {
-    if let Err(e) = try_net_init_stuff_server().await {
+    if let Err(e) = server_loop().await {
         println!("net init err: {e}");
         unsafe {
             SOCK_STATUS.active = false;
@@ -686,7 +692,7 @@ async fn net_init_stuff() {
     }
 }
 
-async fn try_net_init_stuff_server() -> Result<(), i32> {
+async fn server_loop() -> Result<(), i32> {
     unsafe {
         SOCK_STATUS.active = false;
         SOCK_STATUS.last_error_code = 0;
@@ -733,7 +739,7 @@ async fn try_net_init_stuff_server() -> Result<(), i32> {
                 let client_addr = unsafe { SOCK_STATUS.client_conn };
 
                 if bytes_received > 0 {
-                    // println!("received {} bytes", bytes_received);
+                    println!("recv command {}", buffer[0]);
                     // unsafe { SOCK_STATUS.num_requests += 1 }
                     if let Some(_) = client_addr {
                         match buffer[0] {
@@ -744,22 +750,32 @@ async fn try_net_init_stuff_server() -> Result<(), i32> {
                                     let ip = u32::from_be_bytes(buffer[1..5].try_into().unwrap());
                                     let port = u16::from_be_bytes(buffer[5..7].try_into().unwrap());
                                     let dest_addr = IpV4DestAddr { ip, port };
+                                    let mut needs_loc_table = 1u8;
                                     unsafe {
                                         SOCK_STATUS.client_conn = Some(dest_addr);
                                         SOCK_STATUS.progress =
                                             ServerProgress::ConnectionEstablished;
                                         SOCK_STATUS.show_ip = false;
+                                        if SOCK_STATUS.location_table_size != 0 {
+                                            needs_loc_table = 0u8;
+                                        }
                                     }
 
                                     // acknowledgement message for the AP client
-                                    let _ =
-                                        top_fd.send_message(sock, &[0u8], Some(dest_addr)).await;
+                                    let _ = top_fd
+                                        .send_message(
+                                            sock,
+                                            &[0u8, needs_loc_table],
+                                            Some(dest_addr),
+                                        )
+                                        .await;
                                 }
                             },
                             1 => {
                                 // READ_BYTES: 0x01 - [Address bytes] - [Length bytes] - [Checksum]
                                 if bytes_received >= 10 {
-                                    let addr = u32::from_be_bytes(buffer[1..5].try_into().unwrap());
+                                    let addr =
+                                        usize::from_be_bytes(buffer[1..5].try_into().unwrap());
                                     let num_to_read =
                                         u32::from_be_bytes(buffer[5..9].try_into().unwrap())
                                             as usize;
@@ -771,7 +787,7 @@ async fn try_net_init_stuff_server() -> Result<(), i32> {
                                         & 0xFF;
                                     if addr != 0 && checksum == act_sum {
                                         if let Some(data) =
-                                            read_bytes_from_address(addr, num_to_read)
+                                            read_bytes_from_address(addr, num_to_read, true)
                                         {
                                             // forward requested data
                                             let _ =
@@ -807,18 +823,32 @@ async fn try_net_init_stuff_server() -> Result<(), i32> {
                                     }
                                 }
                             },
-                            /*
                             3 => {
-                                // GET_SCENE_FLAGS: 0x03
-                                let flags = get_current_scene_flags();
-                                let _ = top_fd.send_message(sock, &flags, client_addr).await;
+                                // RECV_LOCATION_TABLE: 0x03
+                                // let flags = get_current_scene_flags();
+                                if bytes_received >= 2 {
+                                    let size = u16::from_be_bytes(buffer[1..2].try_into().unwrap());
+                                    let copy_len =
+                                        size as usize * core::mem::size_of::<APLocationInfo>();
+
+                                    unsafe {
+                                        SOCK_STATUS.location_table_size = size;
+                                        if copy_len > 0 && bytes_received >= 3 + copy_len {
+                                            copy_nonoverlapping(
+                                                buffer[3..3 + copy_len].as_ptr(),
+                                                SOCK_STATUS.location_table.as_mut_ptr() as *mut u8,
+                                                copy_len,
+                                            );
+                                        }
+                                    }
+                                }
+                                let _ = top_fd.send_message(sock, &[3u8], client_addr).await;
                             },
                             4 => {
-                                // GET_STORY_FLAGS: 0x04
-                                let flags = get_current_story_flags();
-                                let _ = top_fd.send_message(sock, &flags, client_addr).await;
+                                // REQ_LOCATION_INFO
+                                // TODO
+                                let _ = top_fd.send_message(sock, &[4u8], client_addr).await;
                             },
-                            */
                             5 => {
                                 // DISCONNECT: 0x05 - send acknowledgment and display IP for
                                 // reconnection
@@ -829,6 +859,73 @@ async fn try_net_init_stuff_server() -> Result<(), i32> {
                                     SOCK_STATUS.progress = ServerProgress::BoundSocket;
                                     SOCK_STATUS.show_ip = true;
                                 }
+                            },
+                            6 => {
+                                // REQ_SLOT_NAME
+                                let _ = top_fd
+                                    .send_message(
+                                        sock,
+                                        unsafe { &ARCHIPELAGO_SLOT_NAME },
+                                        client_addr,
+                                    )
+                                    .await;
+                            },
+                            7 => {
+                                // REQ_STATUS
+                                let stat = APStatusReport::new();
+                                let stat_bytes = unsafe {
+                                    core::slice::from_raw_parts(
+                                        (&stat as *const APStatusReport) as *const u8,
+                                        size_of_val(&stat),
+                                    )
+                                };
+                                let _ = top_fd.send_message(sock, stat_bytes, client_addr).await;
+                            },
+                            8 => {
+                                // GIVE_ITEM
+                                if bytes_received == 2 {
+                                    let item_id = buffer[1];
+                                    multiworld::try_place_item(item_id);
+                                    // recalculate status (incl. new expected_index)
+                                    let stat = APStatusReport::new();
+                                    let stat_bytes = unsafe {
+                                        core::slice::from_raw_parts(
+                                            (&stat as *const APStatusReport) as *const u8,
+                                            size_of_val(&stat),
+                                        )
+                                    };
+                                    let _ =
+                                        top_fd.send_message(sock, stat_bytes, client_addr).await;
+                                }
+                            },
+                            9 => {
+                                // KILL_LINK
+                                let res = if multiworld::kill_link() { 1u8 } else { 0u8 };
+                                let _ = top_fd.send_message(sock, &[res], client_addr).await;
+                            },
+                            10 => {
+                                // DEPLETE_STAMINA
+                                let res = if multiworld::deplete_stamina() {
+                                    1u8
+                                } else {
+                                    0u8
+                                };
+                                let _ = top_fd.send_message(sock, &[res], client_addr).await;
+                            },
+                            11 => {
+                                // WRITE_TO_TEXT_BUFFER
+                                let text_buf = unsafe { ARCHIPELAGO_TEXT_BUFFER.as_mut() };
+                                let copy_len =
+                                    core::cmp::min(bytes_received - 1, text_buf.len() - 1);
+                                text_buf.fill(0);
+                                unsafe {
+                                    copy_nonoverlapping(
+                                        buffer[1..1 + copy_len].as_ptr(),
+                                        text_buf.as_mut_ptr(),
+                                        copy_len,
+                                    );
+                                }
+                                let _ = top_fd.send_message(sock, &[11u8], client_addr).await;
                             },
                             _ => {
                                 println!("unknown command: {}", buffer[0]);
@@ -881,43 +978,6 @@ async fn try_net_init_stuff_server() -> Result<(), i32> {
     Ok(())
 }
 
-fn read_bytes_from_address(address: u32, num_bytes: usize) -> Option<&'static [u8]> {
-    const VALID_RANGES: &[(u32, u32)] = &[
-        (0x80000000, 0x817FFFFF), // MEM1
-        (0x90000000, 0x907FFFFF), // MEM2
-    ];
-
-    if num_bytes == 0 || num_bytes > SEND_BUFFER_SIZE {
-        return None;
-    }
-
-    let end_addr = address.saturating_add(num_bytes as u32);
-
-    let is_valid = VALID_RANGES
-        .iter()
-        .any(|(start, end)| address >= *start && end_addr <= *end);
-
-    if !is_valid {
-        println!(
-            "invalid read requested: 0x{:08X}-0x{:08X}",
-            address, end_addr
-        );
-        return None;
-    }
-
-    unsafe {
-        let ptr = address as *const u8;
-        Some(slice::from_raw_parts(ptr, num_bytes))
-    }
-}
-
-fn write_bytes_to_address(address: u32, bytes: &[u8]) {
-    unsafe {
-        let ptr = address as *mut u8;
-        copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len());
-    }
-}
-
 #[derive(PartialEq, Eq)]
 pub enum ServerProgress {
     None,
@@ -927,23 +987,30 @@ pub enum ServerProgress {
 }
 
 pub struct APSocketStatus {
-    pub ip:                 Ipv4Addr,
-    pub client_conn:        Option<IpV4DestAddr>,
-    pub active:             bool,
-    pub show_ip:            bool,
-    pub last_error_code:    i32,
-    pub progress:           ServerProgress,
-    pub last_opened_socket: Option<i32>,
+    pub ip:                  Ipv4Addr,
+    pub client_conn:         Option<IpV4DestAddr>,
+    pub active:              bool,
+    pub show_ip:             bool,
+    pub last_error_code:     i32,
+    pub progress:            ServerProgress,
+    pub last_opened_socket:  Option<i32>,
+    pub location_table:      [APLocationInfo; 512],
+    pub location_table_size: u16,
     // pub num_requests:    u32,
 }
 
 pub static mut SOCK_STATUS: APSocketStatus = APSocketStatus {
-    ip:                 Ipv4Addr::new(0, 0, 0, 0),
-    client_conn:        None,
-    active:             false,
-    show_ip:            true,
-    last_error_code:    0,
-    progress:           ServerProgress::None,
-    last_opened_socket: None,
+    ip:                  Ipv4Addr::new(0, 0, 0, 0),
+    client_conn:         None,
+    active:              false,
+    show_ip:             true,
+    last_error_code:     0,
+    progress:            ServerProgress::None,
+    last_opened_socket:  None,
+    location_table:      [APLocationInfo {
+        base_address: 0,
+        bit_mask:     0,
+    }; 512],
+    location_table_size: 0,
     // num_requests:    0,
 };

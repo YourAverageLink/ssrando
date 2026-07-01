@@ -4028,7 +4028,7 @@ class GamePatcher:
         )
 
         dol.write_data_bytes(
-            self.custom_symbols["main.dol"]["archipelago_slot_name"],
+            self.custom_symbols["main.dol"]["ARCHIPELAGO_SLOT_NAME"],
             self.archipelago.slot_name.encode("utf-8"),
         )
 

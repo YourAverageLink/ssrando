@@ -2,9 +2,6 @@
 ;.org 0x80064b54 ; called every frame
 ;bl give_archipelago_item
 
-.org 0x8005526c ; 4 free bytes in the dol that we can use to store a pointer to the text buffer
-.long archipelago_text_buffer
-
 .org 0x800b9270
 b add_more_colors
 
