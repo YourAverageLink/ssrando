@@ -59,7 +59,9 @@ pub fn get_current_health() -> u16 {
 }
 pub fn set_current_health(health: u16) {
     unsafe {
-        get_current_file().as_mut().unwrap().current_health = health;
+        if let Some(f) = get_current_file().as_mut() {
+            f.current_health = health;
+        }
     }
 }
 pub fn get_current_file() -> *mut SaveFile {

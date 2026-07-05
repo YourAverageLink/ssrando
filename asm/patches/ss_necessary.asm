@@ -519,8 +519,8 @@ blr
 .word 1
 ; .org 0x80055024
 
-.org 0x803af588
-b net_mgr_shutdown
+; .org 0x803af588
+; b net_mgr_shutdown
 
 .close
 

@@ -4043,12 +4043,6 @@ class GamePatcher:
             1 if self.placement_file.options["print-client-messages"] else 0,
         )
 
-        dol.write_data(
-            write_u8,
-            self.custom_symbols["main.dol"]["SHOULD_OPEN_SOCKET"],
-            1 if self.placement_file.options["use-wii-udp-socket"] else 0,
-        )
-
         dol.save_changes()
         write_bytes_create_dirs(
             self.patcher.modified_extract_path / "DATA" / "sys" / "main.dol",

@@ -50,9 +50,7 @@ macro_rules! println {
 #[no_mangle]
 #[link_section = "data"]
 pub static mut SHOULD_PRINT_AP_BUFFER: bool = false;
-#[no_mangle]
-#[link_section = "data"]
-pub static mut SHOULD_OPEN_SOCKET: bool = false;
+
 #[no_mangle]
 #[link_section = "data"]
 pub static mut BUFFER_TAG_PROCESSOR: Option<Box<TagProcessor>> = None;
@@ -64,23 +62,21 @@ static mut INIT_CONNECTION_TIMER: u8 = 255;
 #[no_mangle]
 fn custom_main_additions() -> u32 {
     unsafe {
-        if SHOULD_OPEN_SOCKET {
-            if INIT_CONNECTION_TIMER == 0 {
-                crate::rando::networking::run_net_init();
-                INIT_CONNECTION_TIMER = 255;
-                if BUFFER_TAG_PROCESSOR.is_none() {
-                    // Create our own tag processor; subtype 27 means text defaults to white
-                    BUFFER_TAG_PROCESSOR = Some(Box::new(TagProcessor::with_window_subtype(27)));
-                }
-            } else if !SOCK_STATUS.active {
-                INIT_CONNECTION_TIMER -= 1;
+        if INIT_CONNECTION_TIMER == 0 {
+            crate::rando::networking::run_net_init();
+            INIT_CONNECTION_TIMER = 255;
+            if BUFFER_TAG_PROCESSOR.is_none() {
+                // Create our own tag processor; subtype 27 means text defaults to white
+                BUFFER_TAG_PROCESSOR = Some(Box::new(TagProcessor::with_window_subtype(27)));
             }
+        } else if !SOCK_STATUS.active {
+            INIT_CONNECTION_TIMER -= 1;
+        }
 
-            display_socket_status();
-            if button::is_pressed(button::Z | button::C) {
-                // Toggle IP display
-                SOCK_STATUS.show_ip ^= true;
-            }
+        display_socket_status();
+        if button::is_pressed(button::Z | button::C) {
+            // Toggle IP display
+            SOCK_STATUS.show_ip ^= true;
         }
     }
 

@@ -162,7 +162,7 @@ pub fn kill_link() -> bool {
 
 #[link_section = "data"]
 #[no_mangle]
-pub static mut ARCHIPELAGO_TEXT_BUFFER: [u8; 0x200] = [0; 0x200];
+pub static mut ARCHIPELAGO_TEXT_BUFFER: [u8; 0x400] = [0; 0x400];
 
 #[link_section = "data"]
 #[no_mangle]
@@ -383,22 +383,34 @@ pub fn print_archipelago_text() -> u32 {
     let mut last_char = 0;
     if text_cstr[0] != 0 {
         let mut top_height = 438f32;
-        for char in text_cstr.iter() {
-            // We want to move the text box up for each newline so it's bottom-justified
-            // Ignore if last character was 0x02, as that means it's part of a tag
-            // processor control sequence
-            if *char == b'\n' && last_char != 0x02 {
-                top_height -= 14f32;
-            }
-            last_char = *char;
+        match from_utf8(&text_cstr) {
+            Ok(text) => {
+                for char in text_cstr.iter() {
+                    // We want to move the text box up for each newline so it's bottom-justified
+                    // Ignore if last character was 0x02, as that means it's part of a tag
+                    // processor control sequence
+                    if *char == b'\n' && last_char != 0x02 {
+                        top_height -= 14f32;
+                    }
+                    last_char = *char;
+                }
+
+                let mut console = Console::with_pos(0f32, top_height);
+                console.set_bg_color(0x00000055);
+                console.set_font_color(0xFFFFFFFF);
+                console.set_font_size(0.4f32);
+                let _ = console.write_str(text);
+                console.draw(false);
+            },
+            Err(_) => {
+                let mut console = Console::with_pos(0f32, top_height);
+                console.set_bg_color(0x00000055);
+                console.set_font_color(0xFFFFFFFF);
+                console.set_font_size(0.4f32);
+                let _ = console.write_str("Utf8 parse error.");
+                console.draw(false);
+            },
         }
-        let text = from_utf8(&text_cstr).unwrap();
-        let mut console = Console::with_pos(0f32, top_height);
-        console.set_bg_color(0x00000055);
-        console.set_font_color(0xFFFFFFFF);
-        console.set_font_size(0.4f32);
-        let _ = console.write_str(text);
-        console.draw(false);
     }
 
     // Return 1 to tell the game to continue running
