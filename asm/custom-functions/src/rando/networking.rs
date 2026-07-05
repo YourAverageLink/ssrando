@@ -2,42 +2,32 @@ use core::{
     borrow::BorrowMut,
     cell::Cell,
     ffi::{c_int, c_uint, c_ushort, c_void, CStr},
-    fmt::{Debug, Write},
+    fmt::Debug,
     future::Future,
     mem::size_of_val,
     net::Ipv4Addr,
     pin::Pin,
     ptr::copy_nonoverlapping,
     ptr::null_mut,
-    slice,
-    task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
+    task::{Context, Poll, RawWaker, Waker},
 };
 
-use alloc::string::String;
-use alloc::string::ToString;
-use alloc::{boxed::Box, vec::Vec};
+use alloc::boxed::Box;
 use cstr::cstr;
 
 use crate::{
-    game::{
-        file_manager,
-        flag_managers::{self, SceneflagManager, StoryflagManager},
-    },
+    game::file_manager,
     println,
-    rando::{
-        multiworld::{
-            self, read_bytes_from_address, write_bytes_to_address, APLocationInfo, APStatusReport,
-            ARCHIPELAGO_SLOT_NAME, ARCHIPELAGO_TEXT_BUFFER,
-        },
-        networking,
+    rando::multiworld::{
+        self, read_bytes_from_address, APStatusReport, ARCHIPELAGO_SLOT_NAME,
+        ARCHIPELAGO_TEXT_BUFFER,
     },
     rvl_mem::IosAllocator,
     system::{
         alarm::{OSAlarm, OSInsertAlarm},
         ios::{IOS_CloseAsync, IOS_IoctlAsync, IOS_IoctlvAsync, IOS_OpenAsync},
-        time::get_time_base,
     },
-    utils::{console::Console, AlignedBuf},
+    utils::AlignedBuf,
 };
 
 pub struct IosAsyncContext {
@@ -867,8 +857,10 @@ async fn server_loop() -> Result<(), i32> {
         }
         SOCK_STATUS.last_opened_socket = Some(sock);
     };
-
-    top_fd.bind_socket(sock, ip.into(), CONNECTION_PORT).await?;
+    // even though we got our host ID, we want to listen on address 0 so
+    // that 127.0.0.1 works if this is the same host as the AP client
+    // (i.e., so that Dolphin connects automatically)
+    top_fd.bind_socket(sock, 0, CONNECTION_PORT).await?;
     println!("udp sock bound");
     unsafe {
         SOCK_STATUS.progress = ServerProgress::BoundSocket;

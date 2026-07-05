@@ -7,13 +7,10 @@ pub mod multiworld;
 pub mod networking;
 
 use core::{
-    ffi::{c_char, c_int, c_uint, c_ushort, c_void},
-    fmt::Write,
+    ffi::{c_char, c_int, c_ushort, c_void},
     ptr, slice,
-    str::from_utf8,
 };
 
-use alloc::str;
 use cstr::cstr;
 
 use wchar::wch;
@@ -32,7 +29,6 @@ use crate::{
         reloader::{self, Reloader},
     },
     system::{button::*, math::*},
-    utils::console::Console,
 };
 
 mod custom_actor;
