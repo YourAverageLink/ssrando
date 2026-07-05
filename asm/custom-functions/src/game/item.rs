@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_char, c_int, c_uint, c_void, CStr},
+    ffi::{c_char, c_uint, c_void, CStr},
     fmt::Debug,
 };
 

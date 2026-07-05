@@ -367,7 +367,6 @@ fn can_remove_textbox(item_id: u16) -> bool {
         | 60 // 10 deku seeds
         | 63 // semi rare treasure
         | 64 // rare treasure
-        | 94 // heart piece
         // a bunch of treasures
         | 165
         | 171

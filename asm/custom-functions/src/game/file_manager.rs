@@ -71,3 +71,9 @@ pub fn get_current_scene_flags() -> [u8; 416usize] {
         core::mem::transmute(file.scene_flags)
     }
 }
+pub fn get_current_story_flags() -> [u8; 256usize] {
+    unsafe {
+        let file = *get_current_file();
+        core::mem::transmute(file.storyFlags)
+    }
+}
