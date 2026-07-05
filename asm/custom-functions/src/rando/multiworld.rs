@@ -1,6 +1,4 @@
-use core::{fmt::Write, ptr::copy_nonoverlapping, str::from_utf8};
-
-use alloc::slice;
+use core::{fmt::Write, str::from_utf8};
 
 use crate::{
     game::{
@@ -11,96 +9,12 @@ use crate::{
         player::{self, ActorLink},
         reloader::{self, get_spawn_slave},
     },
-    println,
     rando::item_arc_loader,
     utils::console::Console,
 };
 
-#[derive(Copy, Clone)]
-pub struct APLocationInfo {
-    pub base_address: usize,
-    pub bit_mask:     u32,
-}
-
-impl APLocationInfo {
-    pub fn is_checked(&self) -> bool {
-        if self.base_address == 0xFFFFFFFF {
-            return true;
-        }
-        // assume we already validated each address upon receiving the location table
-        match read_u32_from_address(self.base_address, false) {
-            Some(val) => val & self.bit_mask != 0,
-            None => false,
-        }
-    }
-
-    pub fn set_already_checked(&mut self) {
-        self.base_address = 0xFFFFFFFF;
-    }
-}
-
-pub fn validate_address(address: usize, num_bytes: usize) -> bool {
-    const VALID_RANGES: &[(usize, usize)] = &[
-        (0x80000000, 0x817FFFFF), // MEM1
-        (0x90000000, 0x907FFFFF), // MEM2
-    ];
-
-    if num_bytes == 0 {
-        return false;
-    }
-
-    let end_addr = address.saturating_add(num_bytes);
-
-    let is_valid = VALID_RANGES
-        .iter()
-        .any(|(start, end)| address >= *start && end_addr <= *end);
-
-    is_valid
-}
-
-pub fn read_bytes_from_address(
-    address: usize,
-    num_bytes: usize,
-    check_safety: bool,
-) -> Option<&'static [u8]> {
-    if check_safety && !validate_address(address, num_bytes) {
-        println!(
-            "invalid read requested: 0x{:08X}-0x{:08X}",
-            address,
-            address + num_bytes - 1,
-        );
-        return None;
-    }
-
-    unsafe {
-        let ptr = address as *const u8;
-        Some(slice::from_raw_parts(ptr, num_bytes))
-    }
-}
-
-pub fn read_u32_from_address(address: usize, check_safety: bool) -> Option<u32> {
-    if check_safety && !validate_address(address, 4) {
-        println!(
-            "invalid read requested: 0x{:08X}-0x{:08X}",
-            address,
-            address + 3,
-        );
-        return None;
-    }
-
-    unsafe {
-        let ptr = address as *const u32;
-        Some(*ptr)
-    }
-}
-
-pub fn write_bytes_to_address(address: u32, bytes: &[u8]) {
-    unsafe {
-        let ptr = address as *mut u8;
-        copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len());
-    }
-}
-
+// Contains info the AP client needs to know whether it can
+// send certain requests to the game
 #[repr(C)]
 pub struct APStatusReport {
     stage_name:         [u8; 16],
@@ -185,8 +99,8 @@ extern "C" fn decrement_item_queue(item: *mut Item) {
             (*item).unkfield = 0;
             // shift over the received item queue by one
             // we implement this as a ring buffer so it's guaranteed that any slot
-            // that *was* 0xFF will stay 0xFF in the future (to avoid client race
-            // conditions)
+            // that *was* 0xFF will stay 0xFF in the future
+            // (to avoid client race conditions)
             ARCHIPELAGO_ITEM_SLOTS[CURR_ITEM_SLOT] = EMPTY_SLOT;
             CURR_ITEM_SLOT += 1;
             if CURR_ITEM_SLOT == AP_ITEM_BUFFER_SIZE {

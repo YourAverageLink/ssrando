@@ -18,10 +18,7 @@ use cstr::cstr;
 use crate::{
     game::file_manager,
     println,
-    rando::multiworld::{
-        self, read_bytes_from_address, APStatusReport, ARCHIPELAGO_SLOT_NAME,
-        ARCHIPELAGO_TEXT_BUFFER,
-    },
+    rando::multiworld::{self, APStatusReport, ARCHIPELAGO_SLOT_NAME, ARCHIPELAGO_TEXT_BUFFER},
     rvl_mem::IosAllocator,
     system::{
         alarm::{OSAlarm, OSInsertAlarm},
@@ -910,6 +907,7 @@ async fn server_loop() -> Result<(), i32> {
                                         .await;
                                 }
                             },
+                            /*
                             1 => {
                                 // READ_BYTES: 0x01 - [Address bytes] - [Length bytes]
                                 if bytes_received >= 10 {
@@ -929,7 +927,6 @@ async fn server_loop() -> Result<(), i32> {
                                     }
                                 }
                             },
-                            /*
                             2 => {
                                 // WRITE_BYTES: 0x02 - [Address bytes] - [Length bytes] - [Content]
                                 // - [Checksum]
@@ -1046,11 +1043,11 @@ async fn server_loop() -> Result<(), i32> {
                                 let _ = top_fd.send_message(sock, &[msg_type], client_addr, seq).await;
                             },
                             _ => {
-                                println!("unknown command: {}", buffer[0]);
+                                println!("unknown command: {}", msg_type);
                             },
                         }
                     } else {
-                        match buffer[0] {
+                        match msg_type {
                             0 => {
                                 // ESTABLISH: 0x00 - [IP bytes] - [Port bytes]
                                 println!("client connected");
@@ -1080,7 +1077,7 @@ async fn server_loop() -> Result<(), i32> {
                             _ => {
                                 println!(
                                     "unknown command (connection must be established first): {}",
-                                    buffer[0]
+                                    msg_type
                                 );
                             },
                         }
