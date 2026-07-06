@@ -127,6 +127,26 @@ fn display_socket_status() {
         console.set_bg_color(0x00000055);
         console.set_font_color(0xFFFFFFFF);
         console.set_font_size(0.5f32);
+        match status.progress {
+            ServerProgress::None => {
+                let _ = console.write_str("Socket not yet created\n");
+            },
+            ServerProgress::CreatedUDP => {
+                let _ = console.write_str("Created UDP socket but haven't yet bound\n");
+            },
+            ServerProgress::BoundSocket => {
+                let _ = console.write_str("Bound UDP socket, waiting for connection\n");
+            },
+            _ => {
+                let _ = console.write_str("Connection was active, try waiting for a reconnect\n");
+            },
+        }
+        if status.last_read_err != 0 {
+            let _ = console.write_fmt(format_args!(
+                "Got a read error code: {}\n",
+                status.last_read_err
+            ));
+        }
         if unsafe { rando::networking::EMULATOR_MODE } {
             if status.progress != ServerProgress::ConnectionEstablished {
                 let _ = console.write_str("Waiting for connection from AP client");

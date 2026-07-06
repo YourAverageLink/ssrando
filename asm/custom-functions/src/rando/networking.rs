@@ -884,6 +884,9 @@ async fn server_loop() -> Result<(), i32> {
                     let seq = u16::from_be_bytes(buffer[0..2].try_into().unwrap());
                     let msg_type = buffer[2];
                     println!("recv command {}", msg_type);
+                    unsafe {
+                        SOCK_STATUS.last_read_err = 0;
+                    }
                     // unsafe { SOCK_STATUS.num_requests += 1 }
                     if let Some(_) = client_addr {
                         match msg_type {
@@ -1091,6 +1094,9 @@ async fn server_loop() -> Result<(), i32> {
             },
             Err(e) => {
                 println!("error when reading: {:?}", readres);
+                unsafe {
+                    SOCK_STATUS.last_read_err = e;
+                }
                 if e == -8 {
                     // Bad FD, caused by shutdown, so exit loop
                     return Err(e);
@@ -1121,6 +1127,7 @@ pub struct APSocketStatus {
     pub last_error_code:    i32,
     pub progress:           ServerProgress,
     pub last_opened_socket: Option<i32>,
+    pub last_read_err:      i32,
     // pub num_requests:    u32,
 }
 
@@ -1132,6 +1139,7 @@ pub static mut SOCK_STATUS: APSocketStatus = APSocketStatus {
     last_error_code:    0,
     progress:           ServerProgress::None,
     last_opened_socket: None,
+    last_read_err:      0,
     // num_requests:    0,
 };
 
