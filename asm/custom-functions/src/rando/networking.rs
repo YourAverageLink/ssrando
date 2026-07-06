@@ -854,10 +854,15 @@ async fn server_loop() -> Result<(), i32> {
         }
         SOCK_STATUS.last_opened_socket = Some(sock);
     };
-    // even though we got our host ID, we want to listen on address 0 so
-    // that 127.0.0.1 works if this is the same host as the AP client
-    // (i.e., so that Dolphin connects automatically)
-    top_fd.bind_socket(sock, 0, CONNECTION_PORT).await?;
+    // listen only on localhost on emulator (allows for auto-connect)
+    let emu_mode = unsafe { EMULATOR_MODE };
+    top_fd
+        .bind_socket(
+            sock,
+            if emu_mode { 0x7F000001 } else { ip.into() },
+            CONNECTION_PORT,
+        )
+        .await?;
     println!("udp sock bound");
     unsafe {
         SOCK_STATUS.progress = ServerProgress::BoundSocket;
@@ -1129,3 +1134,6 @@ pub static mut SOCK_STATUS: APSocketStatus = APSocketStatus {
     last_opened_socket: None,
     // num_requests:    0,
 };
+
+#[no_mangle]
+pub static mut EMULATOR_MODE: bool = false;

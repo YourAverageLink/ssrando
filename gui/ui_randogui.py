@@ -171,6 +171,11 @@ class Ui_MainWindow(object):
 
         self.vlay_advanced.addWidget(self.option_print_messages)
 
+        self.option_emulator_mode = QCheckBox(self.box_advanced)
+        self.option_emulator_mode.setObjectName(u"option_emulator_mode")
+
+        self.vlay_advanced.addWidget(self.option_emulator_mode)
+
         self.vspace_advanced = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.vlay_advanced.addItem(self.vspace_advanced)
@@ -758,6 +763,7 @@ class Ui_MainWindow(object):
         self.box_advanced.setTitle(QCoreApplication.translate("MainWindow", u"Advanced Options", None))
         self.option_dry_run.setText(QCoreApplication.translate("MainWindow", u"Dry Run", None))
         self.option_print_messages.setText(QCoreApplication.translate("MainWindow", u"Print Client Messages", None))
+        self.option_emulator_mode.setText(QCoreApplication.translate("MainWindow", u"Emulator Mode", None))
         self.box_cosmetics.setTitle(QCoreApplication.translate("MainWindow", u"Cosmetics", None))
         self.option_cryptic_location_hints.setText(QCoreApplication.translate("MainWindow", u"Cryptic Location Hints", None))
         self.option_lightning_skyward_strike.setText(QCoreApplication.translate("MainWindow", u"Lightning Skyward Strike", None))

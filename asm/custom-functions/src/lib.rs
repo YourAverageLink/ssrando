@@ -102,7 +102,7 @@ fn display_socket_status() {
         match status.last_error_code {
             -10 => {
                 let _ = console
-                    .write_str("(network is busy)\nThis usually requires reopening the game.");
+                    .write_str("\n(network is busy)\nThis usually requires reopening the game.");
             },
             _ => {},
         }
@@ -127,10 +127,18 @@ fn display_socket_status() {
         console.set_bg_color(0x00000055);
         console.set_font_color(0xFFFFFFFF);
         console.set_font_size(0.5f32);
-        if status.progress != ServerProgress::ConnectionEstablished {
-            let _ = console.write_str("Waiting for connection from AP client\n");
+        if unsafe { rando::networking::EMULATOR_MODE } {
+            if status.progress != ServerProgress::ConnectionEstablished {
+                let _ = console.write_str("Waiting for connection from AP client");
+            } else {
+                let _ = console.write_str("Type /console 127.0.0.1 if connection was lost");
+            }
+        } else {
+            if status.progress != ServerProgress::ConnectionEstablished {
+                let _ = console.write_str("Waiting for connection from AP client\n");
+            }
+            let _ = console.write_fmt(format_args!("Type /console {}", status.ip));
         }
-        let _ = console.write_fmt(format_args!("Type /console {}", status.ip));
         console.draw(false);
     }
     // else if status.num_requests > 0 {
