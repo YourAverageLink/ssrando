@@ -223,13 +223,6 @@
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="option_emulator_mode">
-                 <property name="text">
-                  <string>Emulator Mode</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
                 <spacer name="vspace_advanced">
                  <property name="orientation">
                   <enum>Qt::Orientation::Vertical</enum>

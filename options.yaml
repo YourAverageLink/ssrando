@@ -18,17 +18,17 @@
   cosmetic: true
   help: "If checked, client messages will be printed on screen in-game."
   ui: option_print_messages
-- name: Emulator Mode
-  command: emulator-mode
-  type: boolean
-  default: false
-  permalink: false
-  cosmetic: true
-  help: "Convenience toggle for players playing on an emulator; if enabled,
-        the game will only listen on localhost, so the client will auto-connect
-        and no one else can connect to the game. If this is enabled, console connection
-        will NOT work!"
-  ui: option_emulator_mode
+# - name: Emulator Mode
+#   command: emulator-mode
+#   type: boolean
+#   default: false
+#   permalink: false
+#   cosmetic: true
+#   help: "Convenience toggle for players playing on an emulator; if enabled,
+#         the game will only listen on localhost, so the client will auto-connect
+#         and no one else can connect to the game. If this is enabled, console connection
+#         will NOT work!"
+#   ui: option_emulator_mode
 - name: Output Path
   command: output-folder
   type: dirpath
