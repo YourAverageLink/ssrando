@@ -4047,7 +4047,7 @@ class GamePatcher:
         #    write_u8,
         #    self.custom_symbols["main.dol"]["EMULATOR_MODE"],
         #    1 if self.placement_file.options["emulator-mode"] else 0,
-        #)
+        # )
 
         dol.save_changes()
         write_bytes_create_dirs(
