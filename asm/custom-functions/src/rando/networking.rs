@@ -582,6 +582,7 @@ impl TopFd {
                 size_of_val(&params) as u32,
             ],
         };
+        // println!("sending our response: {:?}", message_buf.buf);
         let result = IosIoctlvFut {
             fd:      self.fd,
             command: 13, // IOCTL_SO_SEND
@@ -616,7 +617,7 @@ impl TopFd {
             fd:      self.fd,
             command: 12, // IOCTL_SO_RECV
             in_cnt:  1,
-            out_cnt: 2,
+            out_cnt: 1,
             ioctlv:  ioctlv.as_mut_ptr() as *mut _,
         }
         .await;
@@ -864,17 +865,13 @@ async fn server_loop() -> Result<(), i32> {
                             7 => {
                                 // REQ_STATUS
                                 let stat = APStatusReport::new();
-                                // need to create an owned buffer containing these bytes
-                                // so that the reference remains valid while awaiting send_message
-                                let mut stat_buf = [0u8; core::mem::size_of::<APStatusReport>()];
-                                unsafe {
-                                    core::ptr::copy_nonoverlapping(
-                                        &stat as *const APStatusReport as *const u8,
-                                        stat_buf.as_mut_ptr(),
-                                        stat_buf.len(),
-                                    );
-                                }
-                                let _ = top_fd.send_message(sock, &stat_buf, client_addr, seq).await;
+                                let stat_bytes = unsafe {
+                                    core::slice::from_raw_parts(
+                                        (&stat as *const APStatusReport) as *const u8,
+                                        size_of_val(&stat),
+                                    )
+                                };
+                                let _ = top_fd.send_message(sock, &stat_bytes, client_addr, seq).await;
                             },
                             8 => {
                                 // GIVE_ITEM
