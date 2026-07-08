@@ -317,22 +317,6 @@ struct TopFd {
     fd: c_int,
 }
 
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct IosIoctlvEntry {
-    data: *mut c_void,
-    len:  u32,
-}
-
-impl Default for IosIoctlvEntry {
-    fn default() -> Self {
-        Self {
-            data: null_mut(),
-            len:  0,
-        }
-    }
-}
-
 impl TopFd {
     async fn open() -> Result<Self, c_int> {
         ios_open(cstr!("/dev/net/ip/top"))
