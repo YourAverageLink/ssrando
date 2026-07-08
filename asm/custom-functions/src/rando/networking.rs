@@ -80,13 +80,12 @@ pub extern "C" fn run_net_init() {
 }
 
 pub struct IosOpenFut<'a> {
-    path:      &'a CStr,
-    submitted: bool,
+    path: &'a CStr,
 }
 
 impl<'a> Future for IosOpenFut<'a> {
     type Output = Result<i32, i32>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if let Some(result) = IosAsyncContext::from_ctx(cx).result.take() {
             if result < 0 {
                 Poll::Ready(Err(result))
@@ -94,14 +93,9 @@ impl<'a> Future for IosOpenFut<'a> {
                 Poll::Ready(Ok(result))
             }
         } else {
-            let this = self.as_mut().get_mut();
-            if this.submitted {
-                return Poll::Pending;
-            }
-            this.submitted = true;
             let result = unsafe {
                 IOS_OpenAsync(
-                    this.path.as_ptr(),
+                    self.path.as_ptr(),
                     0,
                     post_ios,
                     cx.waker().as_raw().data() as *mut c_void,
@@ -117,20 +111,16 @@ impl<'a> Future for IosOpenFut<'a> {
 }
 
 fn ios_open<'a>(path: &'a CStr) -> impl Future<Output = Result<i32, i32>> + 'a {
-    IosOpenFut {
-        path,
-        submitted: false,
-    }
+    IosOpenFut { path }
 }
 
 pub struct IosCloseFut {
-    fd:        c_int,
-    submitted: bool,
+    fd: c_int,
 }
 
 impl Future for IosCloseFut {
     type Output = Result<i32, i32>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if let Some(result) = IosAsyncContext::from_ctx(cx).result.take() {
             if result < 0 {
                 Poll::Ready(Err(result))
@@ -138,13 +128,8 @@ impl Future for IosCloseFut {
                 Poll::Ready(Ok(result))
             }
         } else {
-            let this = self.as_mut().get_mut();
-            if this.submitted {
-                return Poll::Pending;
-            }
-            this.submitted = true;
             let result = unsafe {
-                IOS_CloseAsync(this.fd, post_ios, cx.waker().as_raw().data() as *mut c_void)
+                IOS_CloseAsync(self.fd, post_ios, cx.waker().as_raw().data() as *mut c_void)
             };
             if result != 0 {
                 Poll::Ready(Err(result))
@@ -156,24 +141,20 @@ impl Future for IosCloseFut {
 }
 
 fn ios_close<'a>(fd: c_int) -> impl Future<Output = Result<i32, i32>> + 'a {
-    IosCloseFut {
-        fd,
-        submitted: false,
-    }
+    IosCloseFut { fd }
 }
 
 pub struct IosIoctlvFut {
-    fd:        c_int,
-    command:   c_int,
-    in_cnt:    c_int,
-    out_cnt:   c_int,
-    ioctlv:    *mut c_void,
-    submitted: bool,
+    fd:      c_int,
+    command: c_int,
+    in_cnt:  c_int,
+    out_cnt: c_int,
+    ioctlv:  *mut c_void,
 }
 
 impl Future for IosIoctlvFut {
     type Output = Result<i32, i32>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if let Some(result) = IosAsyncContext::from_ctx(cx).result.take() {
             if result < 0 {
                 Poll::Ready(Err(result))
@@ -181,18 +162,13 @@ impl Future for IosIoctlvFut {
                 Poll::Ready(Ok(result))
             }
         } else {
-            let this = self.as_mut().get_mut();
-            if this.submitted {
-                return Poll::Pending;
-            }
-            this.submitted = true;
             let result = unsafe {
                 IOS_IoctlvAsync(
-                    this.fd,
-                    this.command,
-                    this.in_cnt,
-                    this.out_cnt,
-                    this.ioctlv,
+                    self.fd,
+                    self.command,
+                    self.in_cnt,
+                    self.out_cnt,
+                    self.ioctlv,
                     post_ios,
                     cx.waker().as_raw().data() as *mut c_void,
                 )
@@ -207,35 +183,29 @@ impl Future for IosIoctlvFut {
 }
 
 pub struct IosIoctlFut {
-    fd:        c_int,
-    command:   c_int,
-    in_buf:    *mut c_void,
-    in_len:    c_int,
-    out_buf:   *mut c_void,
-    out_len:   c_int,
-    submitted: bool,
+    fd:      c_int,
+    command: c_int,
+    in_buf:  *mut c_void,
+    in_len:  c_int,
+    out_buf: *mut c_void,
+    out_len: c_int,
 }
 
 impl Future for IosIoctlFut {
     type Output = Result<i32, i32>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if let Some(result) = IosAsyncContext::from_ctx(cx).result.take() {
             // some commands have a non error response that is negative
             Poll::Ready(Ok(result))
         } else {
-            let this = self.as_mut().get_mut();
-            if this.submitted {
-                return Poll::Pending;
-            }
-            this.submitted = true;
             let result = unsafe {
                 IOS_IoctlAsync(
-                    this.fd,
-                    this.command,
-                    this.in_buf,
-                    this.in_len,
-                    this.out_buf,
-                    this.out_len,
+                    self.fd,
+                    self.command,
+                    self.in_buf,
+                    self.in_len,
+                    self.out_buf,
+                    self.out_len,
                     post_ios,
                     cx.waker().as_raw().data() as *mut c_void,
                 )
@@ -255,9 +225,8 @@ struct OSAlarmWithIosAsyncContext {
 }
 
 struct AlarmFut<'a> {
-    os_alarm:  &'a mut OSAlarmWithIosAsyncContext,
-    timeout:   u64,
-    submitted: bool,
+    os_alarm: &'a mut OSAlarmWithIosAsyncContext,
+    timeout:  u64,
 }
 
 extern "C" fn alarm_callback(alarm: *mut OSAlarm) {
@@ -272,16 +241,11 @@ impl<'a> Future for AlarmFut<'a> {
         if let Some(_) = IosAsyncContext::from_ctx(cx).result.take() {
             Poll::Ready(())
         } else {
-            let this = self.as_mut().get_mut();
-            if this.submitted {
-                return Poll::Pending;
-            }
-            this.submitted = true;
-            this.os_alarm.context = IosAsyncContext::from_ctx(cx) as *const _ as *mut _;
+            self.os_alarm.context = IosAsyncContext::from_ctx(cx) as *const _ as *mut _;
             unsafe {
                 OSInsertAlarm(
-                    this.os_alarm.borrow_mut() as *mut OSAlarmWithIosAsyncContext as *mut _,
-                    this.timeout,
+                    self.os_alarm.borrow_mut() as *mut OSAlarmWithIosAsyncContext as *mut _,
+                    self.timeout,
                     alarm_callback,
                 )
             };
@@ -298,7 +262,6 @@ async fn sleep(timeout: u64) {
     AlarmFut {
         os_alarm: &mut alarm,
         timeout,
-        submitted: false,
     }
     .await
 }
@@ -370,191 +333,6 @@ impl Default for IosIoctlvEntry {
     }
 }
 
-#[repr(C, align(0x20))]
-#[derive(Default, Debug, Clone, Copy)]
-struct SocketSendToParams {
-    socket:       c_int,
-    flags:        u32,
-    has_destaddr: u32,
-    destaddr:     [u8; 28],
-}
-
-#[repr(C, align(0x20))]
-#[derive(Default, Debug, Clone, Copy)]
-struct SocketRecvFromParams {
-    socket: c_int,
-    flags:  u32,
-}
-
-#[repr(C, align(0x20))]
-struct SendMessageReq {
-    message_buf: AlignedBuf<SEND_BUFFER_SIZE>,
-    params:      SocketSendToParams,
-    ioctlv:      [IosIoctlvEntry; 2],
-}
-
-struct SendMessageFut<'a> {
-    fd:        c_int,
-    req:       Box<SendMessageReq, IosAllocator>,
-    submitted: bool,
-    _marker:   core::marker::PhantomData<&'a [u8]>,
-}
-
-impl<'a> SendMessageFut<'a> {
-    fn new(
-        fd: c_int,
-        socket: c_int,
-        message: &'a [u8],
-        destaddr: Option<IpV4DestAddr>,
-        seq_value: u16,
-    ) -> Self {
-        let mut req = Box::new_in(
-            SendMessageReq {
-                message_buf: AlignedBuf {
-                    buf: [0u8; SEND_BUFFER_SIZE],
-                },
-                params:      SocketSendToParams {
-                    socket,
-                    flags: 0,
-                    has_destaddr: destaddr.is_some().into(),
-                    destaddr: destaddr.map(|a| a.to_array_28()).unwrap_or_default(),
-                },
-                ioctlv:      [IosIoctlvEntry::default(); 2],
-            },
-            IosAllocator,
-        );
-        let payload_len = message.len().min(SEND_BUFFER_SIZE - 2);
-        req.message_buf.buf[0] = (seq_value >> 8) as u8;
-        req.message_buf.buf[1] = seq_value as u8;
-        req.message_buf.buf[2..payload_len + 2].copy_from_slice(&message[..payload_len]);
-        req.ioctlv[0].data = req.message_buf.buf.as_mut_ptr().cast();
-        req.ioctlv[0].len = (payload_len + 2) as u32;
-        req.ioctlv[1].data = (&req.params as *const SocketSendToParams).cast_mut().cast();
-        req.ioctlv[1].len = size_of_val(&req.params) as u32;
-
-        Self {
-            fd,
-            req,
-            submitted: false,
-            _marker: core::marker::PhantomData,
-        }
-    }
-}
-
-impl<'a> Future for SendMessageFut<'a> {
-    type Output = Result<i32, i32>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if let Some(result) = IosAsyncContext::from_ctx(cx).result.take() {
-            if result < 0 {
-                Poll::Ready(Err(result))
-            } else {
-                Poll::Ready(Ok(result))
-            }
-        } else {
-            let this = self.as_mut().get_mut();
-            if this.submitted {
-                return Poll::Pending;
-            }
-            this.submitted = true;
-            let result = unsafe {
-                IOS_IoctlvAsync(
-                    this.fd,
-                    13, // IOCTL_SO_SENDTO
-                    2,
-                    0,
-                    this.req.as_mut().ioctlv.as_mut_ptr().cast(),
-                    post_ios,
-                    cx.waker().as_raw().data() as *mut c_void,
-                )
-            };
-            if result != 0 {
-                Poll::Ready(Err(result))
-            } else {
-                Poll::Pending
-            }
-        }
-    }
-}
-
-#[repr(C, align(0x20))]
-struct ReceiveMessageReq {
-    params:   SocketRecvFromParams,
-    addr_buf: SocketAddrIn,
-    ioctlv:   [IosIoctlvEntry; 3],
-}
-
-struct ReceiveMessageFut<'a> {
-    fd:        c_int,
-    req:       Box<ReceiveMessageReq, IosAllocator>,
-    buffer:    &'a mut [u8],
-    submitted: bool,
-}
-
-impl<'a> ReceiveMessageFut<'a> {
-    fn new(fd: c_int, socket: c_int, buffer: &'a mut [u8]) -> Self {
-        let mut req = Box::new_in(
-            ReceiveMessageReq {
-                params:   SocketRecvFromParams { socket, flags: 0 },
-                addr_buf: SocketAddrIn::default(),
-                ioctlv:   [IosIoctlvEntry::default(); 3],
-            },
-            IosAllocator,
-        );
-        req.ioctlv[0].data = (&req.params as *const SocketRecvFromParams)
-            .cast_mut()
-            .cast();
-        req.ioctlv[0].len = size_of_val(&req.params) as u32;
-        req.ioctlv[1].data = buffer.as_mut_ptr().cast();
-        req.ioctlv[1].len = buffer.len() as u32;
-        req.ioctlv[2].data = (&mut req.addr_buf as *mut SocketAddrIn).cast();
-        req.ioctlv[2].len = size_of_val(&req.addr_buf) as u32;
-
-        Self {
-            fd,
-            req,
-            buffer,
-            submitted: false,
-        }
-    }
-}
-
-impl<'a> Future for ReceiveMessageFut<'a> {
-    type Output = Result<i32, i32>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if let Some(result) = IosAsyncContext::from_ctx(cx).result.take() {
-            if result < 0 {
-                Poll::Ready(Err(result))
-            } else {
-                Poll::Ready(Ok(result))
-            }
-        } else {
-            let this = self.as_mut().get_mut();
-            if this.submitted {
-                return Poll::Pending;
-            }
-            this.submitted = true;
-            let result = unsafe {
-                IOS_IoctlvAsync(
-                    this.fd,
-                    12, // IOCTL_SO_RECV
-                    1,
-                    2,
-                    this.req.as_mut().ioctlv.as_mut_ptr().cast(),
-                    post_ios,
-                    cx.waker().as_raw().data() as *mut c_void,
-                )
-            };
-            if result != 0 {
-                Poll::Ready(Err(result))
-            } else {
-                Poll::Pending
-            }
-        }
-    }
-}
-
 impl TopFd {
     async fn open() -> Result<Self, c_int> {
         ios_open(cstr!("/dev/net/ip/top"))
@@ -569,13 +347,12 @@ impl TopFd {
 
     async fn socket_startup(&self) -> Result<i32, i32> {
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   31, // IOCTL_SO_STARTUP
-            in_buf:    null_mut(),
-            in_len:    0,
-            out_buf:   null_mut(),
-            out_len:   0,
-            submitted: false,
+            fd:      self.fd,
+            command: 31, // IOCTL_SO_STARTUP
+            in_buf:  null_mut(),
+            in_len:  0,
+            out_buf: null_mut(),
+            out_len: 0,
         }
         .await;
         map_standard_result(result)
@@ -583,13 +360,12 @@ impl TopFd {
 
     async fn get_host_id(&self) -> Result<i32, i32> {
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   16, // IOCTL_SO_GETHOSTID
-            in_buf:    null_mut(),
-            in_len:    0,
-            out_buf:   null_mut(),
-            out_len:   0,
-            submitted: false,
+            fd:      self.fd,
+            command: 16, // IOCTL_SO_GETHOSTID
+            in_buf:  null_mut(),
+            in_len:  0,
+            out_buf: null_mut(),
+            out_len: 0,
         }
         .await;
         if matches!(result, Ok(0)) {
@@ -607,13 +383,12 @@ impl TopFd {
             ],
         };
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   15, // IOCTL_SO_SOCKET
-            in_buf:    sock_init.as_mut_ptr() as *mut _,
-            in_len:    size_of_val(&sock_init) as i32,
-            out_buf:   null_mut(),
-            out_len:   0,
-            submitted: false,
+            fd:      self.fd,
+            command: 15, // IOCTL_SO_SOCKET
+            in_buf:  sock_init.as_mut_ptr() as *mut _,
+            in_len:  size_of_val(&sock_init) as i32,
+            out_buf: null_mut(),
+            out_len: 0,
         }
         .await;
         map_standard_result(result)
@@ -628,13 +403,12 @@ impl TopFd {
             ],
         };
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   15, // IOCTL_SO_SOCKET
-            in_buf:    sock_init.as_mut_ptr() as *mut _,
-            in_len:    size_of_val(&sock_init) as i32,
-            out_buf:   null_mut(),
-            out_len:   0,
-            submitted: false,
+            fd:      self.fd,
+            command: 15, // IOCTL_SO_SOCKET
+            in_buf:  sock_init.as_mut_ptr() as *mut _,
+            in_len:  size_of_val(&sock_init) as i32,
+            out_buf: null_mut(),
+            out_len: 0,
         }
         .await;
         map_standard_result(result)
@@ -643,13 +417,12 @@ impl TopFd {
     async fn close_socket(&self, socket_fd: i32) -> Result<(), i32> {
         let mut sock_fd = socket_fd;
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   3, // IOCTL_SO_CLOSE
-            in_buf:    &mut sock_fd as *mut i32 as *mut _,
-            in_len:    size_of::<i32>() as i32,
-            out_buf:   null_mut(),
-            out_len:   0,
-            submitted: false,
+            fd:      self.fd,
+            command: 3, // IOCTL_SO_CLOSE
+            in_buf:  &mut sock_fd as *mut i32 as *mut _,
+            in_len:  size_of::<i32>() as i32,
+            out_buf: null_mut(),
+            out_len: 0,
         }
         .await;
 
@@ -670,13 +443,12 @@ impl TopFd {
             sin_zero: Default::default(),
         };
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   2, // IOCTL_SO_BIND
-            in_buf:    &mut params as *mut SocketConnectParams as *mut _,
-            in_len:    size_of_val(&params) as i32,
-            out_buf:   null_mut(),
-            out_len:   0,
-            submitted: false,
+            fd:      self.fd,
+            command: 2, // IOCTL_SO_BIND
+            in_buf:  &mut params as *mut SocketConnectParams as *mut _,
+            in_len:  size_of_val(&params) as i32,
+            out_buf: null_mut(),
+            out_len: 0,
         }
         .await;
         map_standard_result(result)
@@ -737,13 +509,12 @@ impl TopFd {
             sin_zero: Default::default(),
         };
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   4, // IOCTL_SO_CONNECT
-            in_buf:    &mut params as *mut SocketConnectParams as *mut _,
-            in_len:    size_of_val(&params) as i32,
-            out_buf:   null_mut(),
-            out_len:   0,
-            submitted: false,
+            fd:      self.fd,
+            command: 4, // IOCTL_SO_CONNECT
+            in_buf:  &mut params as *mut SocketConnectParams as *mut _,
+            in_len:  size_of_val(&params) as i32,
+            out_buf: null_mut(),
+            out_len: 0,
         }
         .await;
         map_standard_result(result)
@@ -754,13 +525,12 @@ impl TopFd {
             buf: [socket as u32, backlog as u32],
         };
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   10, // IOCTL_SO_LISTEN
-            in_buf:    params.as_mut_ptr() as *mut _,
-            in_len:    size_of_val(&params) as i32,
-            out_buf:   null_mut(),
-            out_len:   0,
-            submitted: false,
+            fd:      self.fd,
+            command: 10, // IOCTL_SO_LISTEN
+            in_buf:  params.as_mut_ptr() as *mut _,
+            in_len:  size_of_val(&params) as i32,
+            out_buf: null_mut(),
+            out_len: 0,
         }
         .await;
         map_standard_result(result)
@@ -772,13 +542,12 @@ impl TopFd {
         };
         let mut addr_out = SocketAddrIn::default();
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   1, // IOCTL_SO_ACCEPT
-            in_buf:    params.as_mut_ptr() as *mut _,
-            in_len:    size_of_val(&params) as i32,
-            out_buf:   &mut addr_out as *mut SocketAddrIn as *mut _,
-            out_len:   size_of_val(&addr_out) as i32,
-            submitted: false,
+            fd:      self.fd,
+            command: 1, // IOCTL_SO_ACCEPT
+            in_buf:  params.as_mut_ptr() as *mut _,
+            in_len:  size_of_val(&params) as i32,
+            out_buf: &mut addr_out as *mut SocketAddrIn as *mut _,
+            out_len: size_of_val(&addr_out) as i32,
         }
         .await;
         match result {
@@ -800,12 +569,73 @@ impl TopFd {
         destaddr: Option<IpV4DestAddr>,
         seq_value: u16,
     ) -> Result<i32, i32> {
-        let result = SendMessageFut::new(self.fd, socket, message, destaddr, seq_value).await;
+        #[repr(C, align(0x20))]
+        #[derive(Default, Debug, Clone, Copy)]
+        struct SocketSendToParams {
+            socket:       c_int,
+            flags:        u32,
+            has_destaddr: u32,
+            destaddr:     [u8; 28],
+        }
+        let params = SocketSendToParams {
+            socket,
+            flags: 0,
+            has_destaddr: destaddr.is_some().into(),
+            destaddr: destaddr.map(|a| a.to_array_28()).unwrap_or_default(),
+        };
+        let mut message_buf = AlignedBuf {
+            buf: [0u8; SEND_BUFFER_SIZE],
+        };
+
+        message_buf.buf[0] = (seq_value >> 8) as u8;
+        message_buf.buf[1] = seq_value as u8;
+        message_buf.buf[2..message.len() + 2].copy_from_slice(message);
+        let mut ioctlv = AlignedBuf {
+            buf: [
+                message_buf.buf.as_ptr() as u32,
+                (message.len() + 2) as u32,
+                &params as *const SocketSendToParams as u32,
+                size_of_val(&params) as u32,
+            ],
+        };
+        let result = IosIoctlvFut {
+            fd:      self.fd,
+            command: 13, // IOCTL_SO_SEND
+            in_cnt:  2,
+            out_cnt: 0,
+            ioctlv:  ioctlv.as_mut_ptr() as *mut _,
+        }
+        .await;
         map_standard_result(result)
     }
 
     async fn receive_message(&self, socket: c_int, buffer: &mut [u8]) -> Result<i32, i32> {
-        let result = ReceiveMessageFut::new(self.fd, socket, buffer).await;
+        #[repr(C, align(0x20))]
+        #[derive(Default, Debug, Clone, Copy)]
+        struct SocketRecvFromParams {
+            socket: c_int,
+            flags:  u32,
+        }
+
+        let params = SocketRecvFromParams { socket, flags: 0 };
+
+        let mut ioctlv = AlignedBuf {
+            buf: [
+                &params as *const SocketRecvFromParams as u32,
+                size_of_val(&params) as u32,
+                buffer.as_mut_ptr() as u32,
+                buffer.len() as u32,
+            ],
+        };
+
+        let result = IosIoctlvFut {
+            fd:      self.fd,
+            command: 12, // IOCTL_SO_RECV
+            in_cnt:  1,
+            out_cnt: 2,
+            ioctlv:  ioctlv.as_mut_ptr() as *mut _,
+        }
+        .await;
         map_standard_result(result)
     }
 }
@@ -865,13 +695,12 @@ impl RequestFd {
     async fn nwc_24_startup(&self) -> Result<i32, i32> {
         let mut cmd_buf: AlignedBuf<0x20> = AlignedBuf::default();
         let result = IosIoctlFut {
-            fd:        self.fd,
-            command:   6, // IOCTL_NWC24_STARTUP
-            in_buf:    null_mut(),
-            in_len:    0,
-            out_buf:   cmd_buf.as_mut_ptr() as *mut c_void,
-            out_len:   cmd_buf.len() as i32,
-            submitted: false,
+            fd:      self.fd,
+            command: 6, // IOCTL_NWC24_STARTUP
+            in_buf:  null_mut(),
+            in_len:  0,
+            out_buf: cmd_buf.as_mut_ptr() as *mut c_void,
+            out_len: cmd_buf.len() as i32,
         }
         .await;
         map_standard_result(result)
@@ -917,13 +746,7 @@ async fn server_loop() -> Result<(), i32> {
         }
         SOCK_STATUS.last_opened_socket = Some(sock);
     };
-    top_fd
-        .bind_socket(
-            sock,
-            0, // if emu_mode { 0x7F000001 } else { ip.into() },
-            CONNECTION_PORT,
-        )
-        .await?;
+    top_fd.bind_socket(sock, 0, CONNECTION_PORT).await?;
     println!("udp sock bound");
     unsafe {
         SOCK_STATUS.progress = ServerProgress::BoundSocket;
@@ -1057,13 +880,17 @@ async fn server_loop() -> Result<(), i32> {
                             7 => {
                                 // REQ_STATUS
                                 let stat = APStatusReport::new();
-                                let stat_bytes = unsafe {
-                                    core::slice::from_raw_parts(
-                                        (&stat as *const APStatusReport) as *const u8,
-                                        size_of_val(&stat),
-                                    )
-                                };
-                                let _ = top_fd.send_message(sock, stat_bytes, client_addr, seq).await;
+                                // need to create an owned buffer containing these bytes
+                                // so that the reference remains valid while awaiting send_message
+                                let mut stat_buf = [0u8; core::mem::size_of::<APStatusReport>()];
+                                unsafe {
+                                    core::ptr::copy_nonoverlapping(
+                                        &stat as *const APStatusReport as *const u8,
+                                        stat_buf.as_mut_ptr(),
+                                        stat_buf.len(),
+                                    );
+                                }
+                                let _ = top_fd.send_message(sock, &stat_buf, client_addr, seq).await;
                             },
                             8 => {
                                 // GIVE_ITEM
@@ -1203,6 +1030,3 @@ pub static mut SOCK_STATUS: APSocketStatus = APSocketStatus {
     last_read_err:      0,
     // num_requests:    0,
 };
-
-// #[no_mangle]
-// pub static mut EMULATOR_MODE: bool = false;
