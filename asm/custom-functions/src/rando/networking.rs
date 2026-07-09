@@ -887,7 +887,7 @@ async fn server_loop() -> Result<(), i32> {
                                         )
                                     };
                                     let _ =
-                                        top_fd.send_message(sock, stat_bytes, client_addr, seq).await;
+                                        top_fd.send_message(sock, &stat_bytes, client_addr, seq).await;
                                 }
                             },
                             9 => {
