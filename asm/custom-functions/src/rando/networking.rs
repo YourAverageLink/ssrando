@@ -54,12 +54,12 @@ impl IosAsyncContext {
     }
 }
 
-// #[no_mangle]
-// extern "C" fn post_ios(result: c_int, usr_data: *mut c_void) {
-// let ios_ctx = unsafe { &mut *(usr_data as *mut IosAsyncContext) };
-// ios_ctx.result.set(Some(result));
-// IosAsyncContext::do_poll(ios_ctx as *mut _);
-// }
+#[no_mangle]
+extern "C" fn post_ios(result: c_int, usr_data: *mut c_void) {
+    let ios_ctx = unsafe { &mut *(usr_data as *mut IosAsyncContext) };
+    ios_ctx.result.set(Some(result));
+    IosAsyncContext::do_poll(ios_ctx as *mut _);
+}
 
 #[no_mangle]
 pub extern "C" fn run_net_init() {
@@ -229,11 +229,11 @@ struct AlarmFut<'a> {
     timeout:  u64,
 }
 
-// extern "C" fn alarm_callback(alarm: *mut OSAlarm) {
-// let ios_ctx = unsafe { &mut *(*(alarm as *mut
-// OSAlarmWithIosAsyncContext)).context }; ios_ctx.result.set(Some(0));
-// IosAsyncContext::do_poll(ios_ctx as *mut _);
-// }
+extern "C" fn alarm_callback(alarm: *mut OSAlarm) {
+    let ios_ctx = unsafe { &mut *(*(alarm as *mut OSAlarmWithIosAsyncContext)).context };
+    ios_ctx.result.set(Some(0));
+    IosAsyncContext::do_poll(ios_ctx as *mut _);
+}
 
 impl<'a> Future for AlarmFut<'a> {
     type Output = ();
@@ -865,29 +865,31 @@ async fn server_loop() -> Result<(), i32> {
                             7 => {
                                 // REQ_STATUS
                                 let stat = APStatusReport::new();
-                                let stat_bytes = unsafe {
-                                    core::slice::from_raw_parts(
-                                        (&stat as *const APStatusReport) as *const u8,
-                                        size_of_val(&stat),
-                                    )
-                                };
-                                let _ = top_fd.send_message(sock, stat_bytes, client_addr, seq).await;
+                                let mut stat_buf = [0u8; core::mem::size_of::<APStatusReport>()];
+                                unsafe {
+                                    core::ptr::copy_nonoverlapping(
+                                        &stat as *const APStatusReport as *const u8,
+                                        stat_buf.as_mut_ptr(),
+                                        stat_buf.len(),
+                                    );
+                                }
+                                let _ = top_fd.send_message(sock, &stat_buf, client_addr, seq).await;
                             },
                             8 => {
                                 // GIVE_ITEM
                                 if bytes_received == HEADER_SIZE + 1 {
                                     let item_id = buffer[HEADER_SIZE];
                                     multiworld::try_place_item(item_id);
-                                    // recalculate status (incl. new expected_index)
                                     let stat = APStatusReport::new();
-                                    let stat_bytes = unsafe {
-                                        core::slice::from_raw_parts(
-                                            (&stat as *const APStatusReport) as *const u8,
-                                            size_of_val(&stat),
-                                        )
-                                    };
-                                    let _ =
-                                        top_fd.send_message(sock, stat_bytes, client_addr, seq).await;
+                                    let mut stat_buf = [0u8; core::mem::size_of::<APStatusReport>()];
+                                    unsafe {
+                                        core::ptr::copy_nonoverlapping(
+                                            &stat as *const APStatusReport as *const u8,
+                                            stat_buf.as_mut_ptr(),
+                                            stat_buf.len(),
+                                        );
+                                    }
+                                    let _ = top_fd.send_message(sock, &stat_buf, client_addr, seq).await;
                                 }
                             },
                             9 => {
@@ -1012,29 +1014,30 @@ pub static mut SOCK_STATUS: APSocketStatus = APSocketStatus {
     // num_requests:    0,
 };
 
-static mut PENDING_IOS_CTX: Option<*mut IosAsyncContext> = None;
-
-#[no_mangle]
-extern "C" fn post_ios(result: c_int, usr_data: *mut c_void) {
-    let ios_ctx = unsafe { &mut *(usr_data as *mut IosAsyncContext) };
-    ios_ctx.result.set(Some(result));
-    unsafe {
-        PENDING_IOS_CTX = Some(ios_ctx as *mut _);
-    }
-}
-
-extern "C" fn alarm_callback(alarm: *mut OSAlarm) {
-    let ios_ctx = unsafe { &mut *(*(alarm as *mut OSAlarmWithIosAsyncContext)).context };
-    ios_ctx.result.set(Some(0));
-    unsafe {
-        PENDING_IOS_CTX = Some(ios_ctx as *mut _);
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn poll_from_ctx() {
-    let ctx = unsafe { PENDING_IOS_CTX.take() };
-    if let Some(ctx) = ctx {
-        IosAsyncContext::do_poll(ctx);
-    }
-}
+// static mut PENDING_IOS_CTX: Option<*mut IosAsyncContext> = None;
+//
+// #[no_mangle]
+// extern "C" fn post_ios(result: c_int, usr_data: *mut c_void) {
+// let ios_ctx = unsafe { &mut *(usr_data as *mut IosAsyncContext) };
+// ios_ctx.result.set(Some(result));
+// unsafe {
+// PENDING_IOS_CTX = Some(ios_ctx as *mut _);
+// }
+// }
+//
+// extern "C" fn alarm_callback(alarm: *mut OSAlarm) {
+// let ios_ctx = unsafe { &mut *(*(alarm as *mut
+// OSAlarmWithIosAsyncContext)).context }; ios_ctx.result.set(Some(0));
+// unsafe {
+// PENDING_IOS_CTX = Some(ios_ctx as *mut _);
+// }
+// }
+//
+// #[no_mangle]
+// pub extern "C" fn poll_from_ctx() {
+// let ctx = unsafe { PENDING_IOS_CTX.take() };
+// if let Some(ctx) = ctx {
+// IosAsyncContext::do_poll(ctx);
+// }
+// }
+//
