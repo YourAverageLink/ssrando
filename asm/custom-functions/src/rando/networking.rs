@@ -760,11 +760,17 @@ async fn server_loop() -> Result<(), i32> {
                     if let Some(_) = client_addr {
                         match msg_type {
                             0 => {
-                                // ESTABLISH: 0x00 - [IP bytes] - [Port bytes]
+                                // ESTABLISH
                                 println!("client connected");
                                 if bytes_received == HEADER_SIZE + 6 {
-                                    let ip = u32::from_be_bytes(buffer[HEADER_SIZE..HEADER_SIZE + 4].try_into().unwrap());
-                                    let port = u16::from_be_bytes(buffer[HEADER_SIZE + 4..HEADER_SIZE + 6].try_into().unwrap());
+                                    let ip = u32::from_be_bytes(
+                                        buffer[HEADER_SIZE..HEADER_SIZE + 4].try_into().unwrap(),
+                                    );
+                                    let port = u16::from_be_bytes(
+                                        buffer[HEADER_SIZE + 4..HEADER_SIZE + 6]
+                                            .try_into()
+                                            .unwrap(),
+                                    );
                                     let dest_addr = IpV4DestAddr { ip, port };
                                     unsafe {
                                         SOCK_STATUS.client_conn = Some(dest_addr);
@@ -775,76 +781,40 @@ async fn server_loop() -> Result<(), i32> {
 
                                     // acknowledgement message for the AP client
                                     let _ = top_fd
-                                        .send_message(
-                                            sock,
-                                            &[msg_type],
-                                            Some(dest_addr),
-                                            seq
-                                        )
+                                        .send_message(sock, &[msg_type], Some(dest_addr), seq)
                                         .await;
                                 }
                             },
-                            /*
-                            1 => {
-                                // READ_BYTES: 0x01 - [Address bytes] - [Length bytes]
-                                if bytes_received >= 10 {
-                                    let addr =
-                                        usize::from_be_bytes(buffer[HEADER_SIZE..HEADER_SIZE + 4].try_into().unwrap());
-                                    let num_to_read =
-                                        u32::from_be_bytes(buffer[HEADER_SIZE + 4..HEADER_SIZE + 8].try_into().unwrap())
-                                            as usize;
-                                    if addr != 0 {
-                                        if let Some(data) =
-                                            read_bytes_from_address(addr, num_to_read, true)
-                                        {
-                                            // forward requested data
-                                            let _ =
-                                                top_fd.send_message(sock, data, client_addr, seq).await;
-                                        }
-                                    }
-                                }
-                            },
-                            2 => {
-                                // WRITE_BYTES: 0x02 - [Address bytes] - [Length bytes] - [Content]
-                                // - [Checksum]
-                                if bytes_received >= 10 {
-                                    let addr = u32::from_be_bytes(buffer[1..5].try_into().unwrap());
-                                    let num_to_write =
-                                        u32::from_be_bytes(buffer[5..9].try_into().unwrap())
-                                            as usize;
-
-                                    let checksum = buffer[bytes_received - 1] as u32;
-                                    let act_sum = buffer[0..bytes_received - 1]
-                                        .iter()
-                                        .map(|x| *x as u32)
-                                        .sum::<u32>()
-                                        & 0xFF;
-
-                                    if addr != 0
-                                        && checksum == act_sum
-                                        && bytes_received >= 9 + num_to_write
-                                    {
-                                        write_bytes_to_address(addr, &buffer[9..9 + num_to_write]);
-                                        // acknowledge
-                                        let _ =
-                                            top_fd.send_message(sock, &[2u8], client_addr).await;
-                                    }
-                                }
-                            },
-                            */
+                            // not shown: 1 and 2 used to be generic read/write requests,
+                            // but they have been phased out in favor of specialized commands
                             3 => {
-                                // REQ_SCENE_FLAGS: 0x03
-                                let _ = top_fd.send_message(sock, &file_manager::get_current_scene_flags(), client_addr, seq).await;
+                                // REQ_SCENE_FLAGS
+                                let _ = top_fd
+                                    .send_message(
+                                        sock,
+                                        &file_manager::get_current_scene_flags(),
+                                        client_addr,
+                                        seq,
+                                    )
+                                    .await;
                             },
                             4 => {
-                                // REQ_STORY_FLAGS: 0x04
-                                let _ = top_fd.send_message(sock, &file_manager::get_current_story_flags(), client_addr, seq).await;
+                                // REQ_STORY_FLAGS
+                                let _ = top_fd
+                                    .send_message(
+                                        sock,
+                                        &file_manager::get_current_story_flags(),
+                                        client_addr,
+                                        seq,
+                                    )
+                                    .await;
                             },
                             5 => {
-                                // DISCONNECT: 0x05 - send acknowledgment and display IP for
-                                // reconnection
+                                // DISCONNECT - send acknowledgment and display IP for reconnection
                                 println!("client signaled dc");
-                                let _ = top_fd.send_message(sock, &[msg_type], client_addr, seq).await;
+                                let _ = top_fd
+                                    .send_message(sock, &[msg_type], client_addr, seq)
+                                    .await;
                                 unsafe {
                                     SOCK_STATUS.client_conn = None;
                                     SOCK_STATUS.progress = ServerProgress::BoundSocket;
@@ -858,7 +828,7 @@ async fn server_loop() -> Result<(), i32> {
                                         sock,
                                         unsafe { &ARCHIPELAGO_SLOT_NAME },
                                         client_addr,
-                                        seq
+                                        seq,
                                     )
                                     .await;
                             },
@@ -873,7 +843,8 @@ async fn server_loop() -> Result<(), i32> {
                                         stat_buf.len(),
                                     );
                                 }
-                                let _ = top_fd.send_message(sock, &stat_buf, client_addr, seq).await;
+                                let _ =
+                                    top_fd.send_message(sock, &stat_buf, client_addr, seq).await;
                             },
                             8 => {
                                 // GIVE_ITEM
@@ -881,7 +852,8 @@ async fn server_loop() -> Result<(), i32> {
                                     let item_id = buffer[HEADER_SIZE];
                                     multiworld::try_place_item(item_id);
                                     let stat = APStatusReport::new();
-                                    let mut stat_buf = [0u8; core::mem::size_of::<APStatusReport>()];
+                                    let mut stat_buf =
+                                        [0u8; core::mem::size_of::<APStatusReport>()];
                                     unsafe {
                                         core::ptr::copy_nonoverlapping(
                                             &stat as *const APStatusReport as *const u8,
@@ -889,7 +861,9 @@ async fn server_loop() -> Result<(), i32> {
                                             stat_buf.len(),
                                         );
                                     }
-                                    let _ = top_fd.send_message(sock, &stat_buf, client_addr, seq).await;
+                                    let _ = top_fd
+                                        .send_message(sock, &stat_buf, client_addr, seq)
+                                        .await;
                                 }
                             },
                             9 => {
@@ -909,8 +883,10 @@ async fn server_loop() -> Result<(), i32> {
                             11 => {
                                 // WRITE_TO_TEXT_BUFFER
                                 let text_buf = unsafe { ARCHIPELAGO_TEXT_BUFFER.as_mut() };
-                                let copy_len =
-                                    core::cmp::min(bytes_received - HEADER_SIZE, text_buf.len() - HEADER_SIZE);
+                                let copy_len = core::cmp::min(
+                                    bytes_received - HEADER_SIZE,
+                                    text_buf.len() - HEADER_SIZE,
+                                );
                                 text_buf.fill(0);
                                 unsafe {
                                     copy_nonoverlapping(
@@ -919,7 +895,9 @@ async fn server_loop() -> Result<(), i32> {
                                         copy_len,
                                     );
                                 }
-                                let _ = top_fd.send_message(sock, &[msg_type], client_addr, seq).await;
+                                let _ = top_fd
+                                    .send_message(sock, &[msg_type], client_addr, seq)
+                                    .await;
                             },
                             _ => {
                                 println!("unknown command: {}", msg_type);
@@ -928,7 +906,7 @@ async fn server_loop() -> Result<(), i32> {
                     } else {
                         match msg_type {
                             0 => {
-                                // ESTABLISH: 0x00 - [IP bytes] - [Port bytes]
+                                // ESTABLISH
                                 println!("client connected");
                                 if bytes_received == HEADER_SIZE + 6 {
                                     let ip = u32::from_be_bytes(
@@ -1013,31 +991,3 @@ pub static mut SOCK_STATUS: APSocketStatus = APSocketStatus {
     last_read_err:      0,
     // num_requests:    0,
 };
-
-// static mut PENDING_IOS_CTX: Option<*mut IosAsyncContext> = None;
-//
-// #[no_mangle]
-// extern "C" fn post_ios(result: c_int, usr_data: *mut c_void) {
-// let ios_ctx = unsafe { &mut *(usr_data as *mut IosAsyncContext) };
-// ios_ctx.result.set(Some(result));
-// unsafe {
-// PENDING_IOS_CTX = Some(ios_ctx as *mut _);
-// }
-// }
-//
-// extern "C" fn alarm_callback(alarm: *mut OSAlarm) {
-// let ios_ctx = unsafe { &mut *(*(alarm as *mut
-// OSAlarmWithIosAsyncContext)).context }; ios_ctx.result.set(Some(0));
-// unsafe {
-// PENDING_IOS_CTX = Some(ios_ctx as *mut _);
-// }
-// }
-//
-// #[no_mangle]
-// pub extern "C" fn poll_from_ctx() {
-// let ctx = unsafe { PENDING_IOS_CTX.take() };
-// if let Some(ctx) = ctx {
-// IosAsyncContext::do_poll(ctx);
-// }
-// }
-//

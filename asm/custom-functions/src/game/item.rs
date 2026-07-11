@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_char, c_uint, c_void, CStr},
+    ffi::{c_char, c_void, CStr},
     fmt::Debug,
 };
 
@@ -263,24 +263,6 @@ fn play_item_sound(id: u16) {
     unsafe { playSound(SMALL_SFX_MANAGER, id) }
 }
 
-pub fn give_item_by_id(item_id: u16) {
-    match item_id {
-        _ => {},
-    }
-}
-
-#[repr(C)]
-pub struct DummyItem {
-    base:      [u8; 0x60],
-    vtable:    *const DummyItemVTable,
-    pad:       [u8; 0x44],
-    params:    u32,
-    pad2:      [u8; 0x284],
-    item_id:   u16,
-    pad3:      [u8; 0x586],
-    state_mgr: *mut c_void,
-}
-
 #[repr(C)]
 pub struct Item {
     pad:                               [u8; 0xD2C],
@@ -289,61 +271,4 @@ pub struct Item {
     pub show_no_model_and_other_flags: u32,
     pad3:                              [u8; 0x2F],
     pub unkfield:                      u8,
-}
-
-#[repr(C)]
-struct DummyItemVTable {
-    stuff:       [u8; 0x80],
-    get_item_id: extern "C" fn(item: *mut DummyItem) -> c_uint,
-}
-
-static DUMMY_ITEM_VTABLE: DummyItemVTable = DummyItemVTable {
-    stuff:       [0; 0x80],
-    get_item_id: DummyItem__get_item_id,
-};
-
-static mut DUMMY_ITEM: DummyItem = DummyItem {
-    base:      [0; 0x60],
-    vtable:    &DUMMY_ITEM_VTABLE,
-    pad:       [0; 0x44],
-    params:    0,
-    pad2:      [0; 0x284],
-    item_id:   0,
-    pad3:      [0; 0x586],
-    state_mgr: core::ptr::null_mut(),
-};
-
-static mut IS_DUMMY_ITEM_INIT: bool = false;
-
-extern "C" fn DummyItem__get_item_id(item: *mut DummyItem) -> c_uint {
-    unsafe { (*item).params & 0x1FF }
-}
-
-pub fn make_dummy_item(item_id: u16) -> *mut DummyItem {
-    extern "C" {
-        fn AcItem__ctor(item: *mut DummyItem);
-        fn AcItem__dtor(item: *mut c_void);
-        fn AcItem__performCollection1and2(item: *mut c_void);
-        fn AcItem__init(item: *mut c_void);
-    }
-    unsafe {
-        if !IS_DUMMY_ITEM_INIT {
-            AcItem__ctor(&mut DUMMY_ITEM);
-            IS_DUMMY_ITEM_INIT = true;
-        }
-    }
-    set_bottle_pouch_slot(0xFFFFFFFF);
-    set_number_of_items(0);
-    let item_params = setup_item_params(item_id, 1, 0, 0xFF, 1, 0xFF);
-    let dummy_item = unsafe { &mut DUMMY_ITEM };
-    dummy_item.params = item_params;
-    dummy_item.item_id = item_id;
-    set_bottle_pouch_slot(u32::MAX);
-    set_number_of_items(0);
-
-    unsafe {
-        AcItem__performCollection1and2(dummy_item as *mut DummyItem as *mut c_void);
-        // AcItem__dtor(item);
-    }
-    dummy_item
 }
