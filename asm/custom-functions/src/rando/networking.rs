@@ -54,12 +54,12 @@ impl IosAsyncContext {
     }
 }
 
-#[no_mangle]
-extern "C" fn post_ios(result: c_int, usr_data: *mut c_void) {
-    let ios_ctx = unsafe { &mut *(usr_data as *mut IosAsyncContext) };
-    ios_ctx.result.set(Some(result));
-    IosAsyncContext::do_poll(ios_ctx as *mut _);
-}
+// #[no_mangle]
+// extern "C" fn post_ios(result: c_int, usr_data: *mut c_void) {
+// let ios_ctx = unsafe { &mut *(usr_data as *mut IosAsyncContext) };
+// ios_ctx.result.set(Some(result));
+// IosAsyncContext::do_poll(ios_ctx as *mut _);
+// }
 
 #[no_mangle]
 pub extern "C" fn run_net_init() {
@@ -229,11 +229,11 @@ struct AlarmFut<'a> {
     timeout:  u64,
 }
 
-extern "C" fn alarm_callback(alarm: *mut OSAlarm) {
-    let ios_ctx = unsafe { &mut *(*(alarm as *mut OSAlarmWithIosAsyncContext)).context };
-    ios_ctx.result.set(Some(0));
-    IosAsyncContext::do_poll(ios_ctx as *mut _);
-}
+// extern "C" fn alarm_callback(alarm: *mut OSAlarm) {
+// let ios_ctx = unsafe { &mut *(*(alarm as *mut
+// OSAlarmWithIosAsyncContext)).context }; ios_ctx.result.set(Some(0));
+// IosAsyncContext::do_poll(ios_ctx as *mut _);
+// }
 
 impl<'a> Future for AlarmFut<'a> {
     type Output = ();
@@ -1011,3 +1011,30 @@ pub static mut SOCK_STATUS: APSocketStatus = APSocketStatus {
     last_read_err:      0,
     // num_requests:    0,
 };
+
+static mut PENDING_IOS_CTX: Option<*mut IosAsyncContext> = None;
+
+#[no_mangle]
+extern "C" fn post_ios(result: c_int, usr_data: *mut c_void) {
+    let ios_ctx = unsafe { &mut *(usr_data as *mut IosAsyncContext) };
+    ios_ctx.result.set(Some(result));
+    unsafe {
+        PENDING_IOS_CTX = Some(ios_ctx as *mut _);
+    }
+}
+
+extern "C" fn alarm_callback(alarm: *mut OSAlarm) {
+    let ios_ctx = unsafe { &mut *(*(alarm as *mut OSAlarmWithIosAsyncContext)).context };
+    ios_ctx.result.set(Some(0));
+    unsafe {
+        PENDING_IOS_CTX = Some(ios_ctx as *mut _);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn poll_from_ctx() {
+    let ctx = unsafe { PENDING_IOS_CTX.take() };
+    if let Some(ctx) = ctx {
+        IosAsyncContext::do_poll(ctx);
+    }
+}

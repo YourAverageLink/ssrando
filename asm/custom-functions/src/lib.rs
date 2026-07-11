@@ -80,6 +80,7 @@ fn custom_main_additions() -> u32 {
         }
     }
 
+    rando::networking::poll_from_ctx();
     rando::multiworld::give_ap_rs();
     if unsafe { SHOULD_PRINT_AP_BUFFER } {
         return crate::rando::multiworld::print_archipelago_text();

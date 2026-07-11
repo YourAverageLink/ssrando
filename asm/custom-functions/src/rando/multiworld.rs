@@ -10,7 +10,6 @@ use crate::{
         reloader::{self, get_spawn_slave},
     },
     rando::item_arc_loader,
-    system::mutex::{WiiLockGuard, WiiMutex},
     utils::console::Console,
 };
 
@@ -83,89 +82,14 @@ pub static mut ARCHIPELAGO_TEXT_BUFFER: [u8; 0x400] = [0; 0x400];
 #[no_mangle]
 pub static mut ARCHIPELAGO_SLOT_NAME: [u8; 0x10] = [0; 0x10];
 
-const AP_ITEM_BUFFER_SIZE: usize = 2;
+const AP_ITEM_BUFFER_SIZE: usize = 14;
 
 extern "C" {
     static TITLE_LOADER_ADDR: u32;
-    static mut ARCHIPELAGO_ITEM_SLOTS: [u8; AP_ITEM_BUFFER_SIZE];
+    static mut ARCHIPELAGO_ITEM_SLOTS: [u8; AP_ITEM_BUFFER_SIZE]; // ring buffer
     static mut ARCHIPELAGO_EXPECTED_INDEX: u16;
     static FRAME_COUNT: u32;
 }
-
-// const ITEM_MUTEX: WiiMutex = WiiMutex::new();
-//
-// struct ItemQueue {
-// mutex: WiiMutex,
-// slots: &'static mut [u8; AP_ITEM_BUFFER_SIZE],
-// head_idx: u8,
-// tail_idx: u8,
-// receiving_item: bool,
-// loaded_arc: u8,
-// }
-//
-// impl ItemQueue {
-// fn wrapping_inc(idx: u8) -> u8 {
-// if idx as usize == AP_ITEM_BUFFER_SIZE - 1 {
-// return 0;
-// }
-//
-// idx + 1
-// }
-//
-// fn try_acquire() -> Option<(&'static mut Self, WiiLockGuard<'static>)> {
-// if let Some(g) = ITEM_MUTEX.try_lock() {
-// return Some((unsafe { &mut ITEM_QUEUE }, g));
-// }
-//
-// None
-// }
-//
-// fn push_item(&mut self, item_id: u8) -> bool {
-// let new_tail = ItemQueue::wrapping_inc(self.tail_idx);
-// if new_tail == self.head_idx {
-// return false;
-// }
-//
-// unsafe {
-// ARCHIPELAGO_ITEM_SLOTS[self.tail_idx as usize] = item_id;
-// ARCHIPELAGO_EXPECTED_INDEX += 1;
-// }
-//
-// self.tail_idx = new_tail;
-// true
-// }
-//
-// fn peek_item(&mut self) -> Option<u8> {
-// if self.head_idx == self.tail_idx {
-// return None;
-// }
-//
-// let ret = unsafe { ARCHIPELAGO_ITEM_SLOTS[self.head_idx as usize] };
-// Some(ret)
-// }
-//
-// fn pop_item(&mut self) -> Option<u8> {
-// if self.head_idx == self.tail_idx {
-// return None;
-// }
-//
-// let ret = unsafe { ARCHIPELAGO_ITEM_SLOTS[self.head_idx as usize] };
-// unsafe {
-// ARCHIPELAGO_ITEM_SLOTS[self.head_idx as usize] = EMPTY_SLOT;
-// }
-// Some(ret)
-// }
-// }
-//
-// #[no_mangle]
-// static mut ITEM_QUEUE: ItemQueue = ItemQueue {
-// mutex: WiiMutex::new(),
-// slots: &mut ARCHIPELAGO_ITEM_SLOTS,
-// head_idx: 0,
-// tail_idx: 0,
-// receiving_item: false,
-// loaded_arc: 0,
-// };
 
 #[no_mangle]
 extern "C" fn decrement_item_queue(item: *mut Item) {
@@ -173,8 +97,15 @@ extern "C" fn decrement_item_queue(item: *mut Item) {
         if (*item).unkfield == AP_ITEM_MAGIC {
             // finished receiving an AP item
             (*item).unkfield = 0;
-            ARCHIPELAGO_ITEM_SLOTS[0] = ARCHIPELAGO_ITEM_SLOTS[1];
-            ARCHIPELAGO_ITEM_SLOTS[1] = EMPTY_SLOT;
+            // shift over the received item queue by one
+            // we implement this as a ring buffer so it's guaranteed that any slot
+            // that *was* 0xFF will stay 0xFF in the future
+            // (to avoid client race conditions)
+            ARCHIPELAGO_ITEM_SLOTS[CURR_ITEM_SLOT] = EMPTY_SLOT;
+            CURR_ITEM_SLOT += 1;
+            if CURR_ITEM_SLOT == AP_ITEM_BUFFER_SIZE {
+                CURR_ITEM_SLOT = 0;
+            }
             IS_GETTING_ITEM = false;
         }
     }
@@ -188,6 +119,12 @@ static mut IS_GETTING_ITEM: bool = false;
 
 #[no_mangle]
 static mut DID_DIE: bool = false;
+
+#[no_mangle]
+static mut DID_RESET: bool = false;
+
+#[no_mangle]
+static mut CURR_ITEM_SLOT: usize = 0;
 
 const AP_ITEM_MAGIC: u8 = 0xAB;
 const EMPTY_SLOT: u8 = 0x00;
@@ -230,17 +167,13 @@ fn can_receive_items(link: &ActorLink) -> bool {
 }
 
 pub fn try_place_item(item_id: u8) -> bool {
-    unsafe {
-        if ARCHIPELAGO_ITEM_SLOTS[0] == EMPTY_SLOT {
-            ARCHIPELAGO_ITEM_SLOTS[0] = item_id;
-            ARCHIPELAGO_EXPECTED_INDEX += 1;
-            return true;
-        }
-
-        if ARCHIPELAGO_ITEM_SLOTS[1] == EMPTY_SLOT {
-            ARCHIPELAGO_ITEM_SLOTS[1] = item_id;
-            ARCHIPELAGO_EXPECTED_INDEX += 1;
-            return true;
+    for i in 0..AP_ITEM_BUFFER_SIZE {
+        unsafe {
+            if ARCHIPELAGO_ITEM_SLOTS[i] == 0 {
+                ARCHIPELAGO_ITEM_SLOTS[i] = item_id;
+                ARCHIPELAGO_EXPECTED_INDEX += 1;
+                return true;
+            }
         }
     }
 
@@ -254,7 +187,7 @@ pub fn give_ap_rs() {
         if is_on_title_screen() {
             return;
         }
-        let item_id = unsafe { ARCHIPELAGO_ITEM_SLOTS[0] };
+        let item_id = unsafe { ARCHIPELAGO_ITEM_SLOTS[CURR_ITEM_SLOT] };
         let getting_item = unsafe { IS_GETTING_ITEM };
         let current_item_arc = unsafe { CURR_AP_ARC };
         // is this hacky? yes. do I care? immensely, but I need to prevent bad things
@@ -276,6 +209,13 @@ pub fn give_ap_rs() {
             }
         }
         if item_id == EMPTY_SLOT {
+            // switch to next item in the ring buffer, try next frame
+            unsafe {
+                CURR_ITEM_SLOT += 1;
+                if CURR_ITEM_SLOT == AP_ITEM_BUFFER_SIZE {
+                    CURR_ITEM_SLOT = 0;
+                }
+            }
             return;
         }
         // is Link not receiving another item?
@@ -289,12 +229,12 @@ pub fn give_ap_rs() {
                 // subtype 4 means no textbox
                 let item_params = item::setup_item_params(item_id.into(), 4, 0, 0xFF, 1, 0xFF);
                 let item = item::spawn_item(u32::MAX, item_params, 0, 0, 0, u32::MAX, 1);
+                item::set_bottle_pouch_slot(u32::MAX);
+                item::set_number_of_items(0);
                 unsafe {
                     (*item).unkfield = AP_ITEM_MAGIC;
                     IS_GETTING_ITEM = true;
                 };
-                item::set_bottle_pouch_slot(u32::MAX);
-                item::set_number_of_items(0);
             } else {
                 if current_item_arc == 0xFF || current_item_arc == EMPTY_SLOT {
                     item_arc_loader::load_arcs_for_item(item_id.into());
@@ -310,13 +250,13 @@ pub fn give_ap_rs() {
                     // subtype 5 means textbox
                     let item_params = item::setup_item_params(item_id.into(), 5, 0, 0xFF, 1, 0xFF);
                     let item = item::spawn_item(u32::MAX, item_params, 0, 0, 0, u32::MAX, 1);
+                    item::set_bottle_pouch_slot(u32::MAX);
+                    item::set_number_of_items(0);
                     unsafe {
                         (*item).unkfield = AP_ITEM_MAGIC;
                         CURR_AP_ARC = EMPTY_SLOT;
                         IS_GETTING_ITEM = true;
                     };
-                    item::set_bottle_pouch_slot(u32::MAX);
-                    item::set_number_of_items(0);
                     item_arc_loader::unload_arcs_for_item(item_id.into());
                 }
             }
