@@ -13,7 +13,7 @@
 - name: Print Client Messages
   command: print-client-messages
   type: boolean
-  default: true
+  default: false
   permalink: false
   cosmetic: true
   help: "If checked, client messages will be printed on screen in-game."

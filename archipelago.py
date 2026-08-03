@@ -62,6 +62,8 @@ class Archipelago:
         self.placement_file.options = options
         for optkey, opt in OPTIONS.items():  # Set placement file options
             if "cosmetic" in opt:
+                if optkey == "print-client-messages":
+                    options.set_option(optkey, False)
                 pass
             elif optkey in UNTOUCHED_OPTIONS:
                 pass
