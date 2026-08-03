@@ -3627,6 +3627,16 @@ F200: # Eldin main area
       anglez: 30505 # Different eventpoint on hero mode cos boko base sucks
       id: 0xFFFF
       name: HrpHint
+  - name: Exit from Eldin Shiekah Stone to Boko Base
+    type: objadd
+    index: 0
+    room: 1
+    objtype: SCEN
+    object:
+      name: F202
+      layer: 1
+      room: 1 # 0 = cutscene + no items; 1 = no cutscene + keep items
+      entrance: 0 # New Eldin -> Boko Base sky entrance
   - name: Boko Base Shiekah Stone Coords
     type: objadd
     index: 5
@@ -4052,6 +4062,16 @@ F202: # Boko Base
       anglez: 30506 # Different eventpoint on hero mode cos boko base sucks
       id: 0xFFFF
       name: HrpHint
+  - name: Exit from Boko Base Shiekah Stone to Eldin
+    type: objadd
+    index: 0
+    room: 1
+    objtype: SCEN
+    object:
+      name: F200
+      layer: 1
+      room: 1
+      entrance: 5 # New Boko Base -> Eldin entrance
   - name: Add hot cave Plats to prison
     type: objadd
     layer: 0
