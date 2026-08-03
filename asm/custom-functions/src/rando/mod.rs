@@ -713,7 +713,7 @@ extern "C" fn get_tablet_keyframe_count() -> c_int {
 }
 
 #[no_mangle]
-pub fn print_archipelago_text() -> u32 {
+pub fn print_archipelago_text() {
     let text_cstr = unsafe { archipelago_text_buffer };
     let mut last_char = 0;
     if text_cstr[0] != 0 {
@@ -735,9 +735,6 @@ pub fn print_archipelago_text() -> u32 {
         let _ = console.write_str(text);
         console.draw(false);
     }
-
-    // Return 1 to tell the game to continue running
-    1
 }
 
 #[no_mangle]

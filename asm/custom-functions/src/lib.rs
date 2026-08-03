@@ -82,15 +82,11 @@ fn custom_main_additions() -> u32 {
                 SOCK_STATUS.show_ip ^= true;
             }
         }
-
-        if SHOULD_PRINT_AP_BUFFER {
-            return crate::rando::print_archipelago_text();
-        }
     }
 
     rando::give_ap_rs();
     if unsafe { SHOULD_PRINT_AP_BUFFER } {
-        return crate::rando::print_archipelago_text();
+        crate::rando::print_archipelago_text();
     }
 
     return 1;
