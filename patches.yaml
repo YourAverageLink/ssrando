@@ -3628,6 +3628,7 @@ F200: # Eldin main area
       id: 0xFFFF
       name: HrpHint
   - name: Exit from Eldin Shiekah Stone to Boko Base
+    onlyif: Option "randomize-entrances" Is Not "All Entrances"
     type: objadd
     index: 0
     room: 1
@@ -4063,6 +4064,7 @@ F202: # Boko Base
       id: 0xFFFF
       name: HrpHint
   - name: Exit from Boko Base Shiekah Stone to Eldin
+    onlyif: Option "randomize-entrances" Is Not "All Entrances"
     type: objadd
     index: 0
     room: 1
