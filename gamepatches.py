@@ -1492,7 +1492,8 @@ class GamePatcher:
     def do_all_gamepatches(self):
         self.load_base_patches()
         self.add_archipelago_patches()
-        self.add_entrance_rando_patches()
+        if self.placement_file.options["randomize-entrances"] != "None":
+            self.add_entrance_rando_patches()
         self.add_trial_rando_patches()
         if self.placement_file.options["shopsanity"]:
             self.shopsanity_patches()
