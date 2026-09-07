@@ -610,6 +610,8 @@ impl TopFd {
                 size_of_val(&params) as u32,
                 buffer.as_mut_ptr() as u32,
                 buffer.len() as u32,
+                0,
+                0,
             ],
         };
 
@@ -617,7 +619,7 @@ impl TopFd {
             fd:      self.fd,
             command: 12, // IOCTL_SO_RECV
             in_cnt:  1,
-            out_cnt: 1,
+            out_cnt: 2,
             ioctlv:  ioctlv.as_mut_ptr() as *mut _,
         }
         .await;
