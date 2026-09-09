@@ -292,7 +292,7 @@ fn can_remove_textbox(item_id: u16) -> bool {
 }
 
 #[no_mangle]
-pub fn print_archipelago_text() {
+pub fn print_client_text() {
     let text_cstr = unsafe { ARCHIPELAGO_TEXT_BUFFER };
     let mut last_char = 0;
     if text_cstr[0] != 0 {

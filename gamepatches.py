@@ -4038,12 +4038,6 @@ class GamePatcher:
             self.archipelago.apseed.encode("utf-8"),
         )
 
-        dol.write_data(
-            write_u8,
-            self.custom_symbols["main.dol"]["SHOULD_PRINT_AP_BUFFER"],
-            1 if self.placement_file.options["print-client-messages"] else 0,
-        )
-
         # dol.write_data(
         #    write_u8,
         #    self.custom_symbols["main.dol"]["EMULATOR_MODE"],

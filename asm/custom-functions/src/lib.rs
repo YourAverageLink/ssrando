@@ -46,11 +46,6 @@ macro_rules! println {
     }};
 }
 
-// Not actually mutable but needs to be to show up in custom_symbols
-#[no_mangle]
-#[link_section = "data"]
-pub static mut SHOULD_PRINT_AP_BUFFER: bool = false;
-
 #[no_mangle]
 #[link_section = "data"]
 pub static mut BUFFER_TAG_PROCESSOR: Option<Box<TagProcessor>> = None;
@@ -81,9 +76,7 @@ fn custom_main_additions() -> u32 {
     }
 
     rando::multiworld::give_ap_rs();
-    if unsafe { SHOULD_PRINT_AP_BUFFER } {
-        crate::rando::multiworld::print_archipelago_text();
-    }
+    crate::rando::multiworld::print_client_text();
 
     return 1;
 }

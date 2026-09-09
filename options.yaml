@@ -10,14 +10,15 @@
   permalink: false
   help: "Only generate a spoiler log, doesn't attempt to patch any game files."
   ui: option_dry_run
-- name: Print Client Messages
-  command: print-client-messages
-  type: boolean
-  default: true
-  permalink: false
-  cosmetic: true
-  help: "If checked, client messages will be printed on screen in-game."
-  ui: option_print_messages
+# (This is now handled in the client)
+# - name: Print Client Messages
+#  command: print-client-messages
+#  type: boolean
+#  default: true
+#  permalink: false
+#  cosmetic: true
+#  help: "If checked, client messages will be printed on screen in-game."
+#  ui: option_print_messages
 # - name: Emulator Mode
 #   command: emulator-mode
 #   type: boolean

@@ -166,11 +166,6 @@ class Ui_MainWindow(object):
 
         self.vlay_advanced.addWidget(self.option_dry_run)
 
-        self.option_print_messages = QCheckBox(self.box_advanced)
-        self.option_print_messages.setObjectName(u"option_print_messages")
-
-        self.vlay_advanced.addWidget(self.option_print_messages)
-
         self.vspace_advanced = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.vlay_advanced.addItem(self.vspace_advanced)
@@ -757,7 +752,6 @@ class Ui_MainWindow(object):
         self.option_out_placement_file.setText(QCoreApplication.translate("MainWindow", u"Generate Placement File", None))
         self.box_advanced.setTitle(QCoreApplication.translate("MainWindow", u"Advanced Options", None))
         self.option_dry_run.setText(QCoreApplication.translate("MainWindow", u"Dry Run", None))
-        self.option_print_messages.setText(QCoreApplication.translate("MainWindow", u"Print Client Messages", None))
         self.box_cosmetics.setTitle(QCoreApplication.translate("MainWindow", u"Cosmetics", None))
         self.option_cryptic_location_hints.setText(QCoreApplication.translate("MainWindow", u"Cryptic Location Hints", None))
         self.option_lightning_skyward_strike.setText(QCoreApplication.translate("MainWindow", u"Lightning Skyward Strike", None))
@@ -805,4 +799,3 @@ class Ui_MainWindow(object):
         self.label_for_settings_string.setText(QCoreApplication.translate("MainWindow", u"Last Generated Settings String:", None))
         self.randomize_button.setText(QCoreApplication.translate("MainWindow", u"Randomize", None))
     # retranslateUi
-

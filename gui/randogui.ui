@@ -216,13 +216,6 @@
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="option_print_messages">
-                 <property name="text">
-                  <string>Print Client Messages</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
                 <spacer name="vspace_advanced">
                  <property name="orientation">
                   <enum>Qt::Orientation::Vertical</enum>
